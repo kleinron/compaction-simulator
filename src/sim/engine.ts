@@ -55,6 +55,7 @@ export type SimSnapshot = {
   recentUpserts: DbLeaf[]
   dbKeyCount: number
   dbTotalViews: number
+  pendingViews: number
   stats: {
     rawViews: number
     dbUpserts: number
@@ -220,18 +221,21 @@ export class SimulationEngine {
     const { config } = this
     const P = shardSizeP(config.T, config.N)
     const lambda = arrivalRateLambda(config.V_day)
+    const shards = this.shards.map((shard, index) => this.snapshotShard(shard, index))
+    const pendingViews = shards.reduce((sum, shard) => sum + shard.messages, 0)
     return {
       simTime: this.simTime,
       simIso: simTimeToIso(this.simTime),
       config,
       lambda,
       P,
-      shards: this.shards.map((shard, index) => this.snapshotShard(shard, index)),
+      shards,
       aggQueue: this.aggQueue.slice(-AGG_KEEP),
       recentIngest: this.recentIngest.slice(-INGEST_KEEP),
       recentUpserts: this.recentUpserts.slice(-UPSERT_KEEP),
       dbKeyCount: this.db.size,
       dbTotalViews: dbTotalViews(this.db),
+      pendingViews,
       stats: {
         rawViews: this.rawViews,
         dbUpserts: this.dbUpserts,

@@ -19,14 +19,9 @@ Live C is counted from the run (`raw_views` and `db_upserts`), not from the
 closed-form estimate.
 
 When **only M fires** and all traffic sits in a **single hour**, occupancy
-gives
-
-\[
-\mathbb{E}[U] = P\bigl(1-(1-1/P)^{M}\bigr), \qquad C \approx M/\mathbb{E}[U]
-\]
-
-where **P = T/N** is the shard size (pages per raw queue). **S** is the
-timeout knob in sim-seconds — it is never the shard size.
+gives `E[U] = P(1-(1-1/P)^M)` and `C ≈ M/E[U]`, where **P = T/N** is the
+shard size (pages per raw queue). **S** is the timeout knob in sim-seconds —
+it is never the shard size.
 
 ## Pipeline
 

@@ -98,7 +98,7 @@ describe('discrete-event engine', () => {
     const snap = eng.snapshot()
     expect(snap.stats.rawViews).toBeGreaterThan(0)
     expect(snap.stats.dbUpserts).toBeGreaterThan(0)
-    expect(snap.dbTotalViews).toBe(snap.stats.rawViews)
+    expect(snap.dbTotalViews + snap.pendingViews).toBe(snap.stats.rawViews)
     expect(snap.stats.C).toBeCloseTo(snap.stats.rawViews / snap.stats.dbUpserts)
     expect(snap.P).toBe(shardSizeP(40, 2))
   })
