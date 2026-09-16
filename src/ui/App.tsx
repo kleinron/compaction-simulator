@@ -1,12 +1,11 @@
-import { useState } from 'react'
-import { DEFAULT_CONFIG, type SimConfig } from '../sim/index.ts'
 import { Knobs } from './Knobs.tsx'
 import { Metrics } from './Metrics.tsx'
 import { Pipeline } from './Pipeline.tsx'
+import { useShareableConfig } from './useShareableConfig.ts'
 import { useSimulation } from './useSimulation.ts'
 
 export default function App() {
-  const [config, setConfig] = useState<SimConfig>(DEFAULT_CONFIG)
+  const [config, setConfig] = useShareableConfig()
   const { snapshot, playing, setPlaying, speed, setSpeed, wallElapsed, reset } =
     useSimulation(config)
 

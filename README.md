@@ -91,6 +91,14 @@ npm run build
 npm run preview
 ```
 
+## Shareable URL
+
+Knobs and toggles live in the query string so a copied link restores the same
+run. Play / speed are session-only and are not written. Unknown keys are
+ignored; `jitter` is accepted as an alias of `timeoutJitter`. Example:
+
+https://kleinron.github.io/compaction-simulator/?T=80&N=4&M=20&S=8&V_day=1000000&stage2=1&S2=25&M2=3&timeoutJitter=1
+
 ## GitHub Pages
 
 On every push to `main`, `.github/workflows/pages.yml` runs `npm test`,
@@ -100,5 +108,6 @@ if it is not already.
 
 ## Layout
 
-- `src/sim/` — pure domain: hash shard, S/M flush race, optional stage-2 mid-agg, upserts, C, discrete-event engine. No React.
-- `src/ui/` — slider+textbox knobs, stage-2 toggle, global timeout-jitter toggle, freshness chip, and the LTR pipeline visualization.
+- `src/sim/` — pure domain: hash shard, S/M flush race, optional stage-2 mid-agg, upserts, C, discrete-event engine. No React / window.
+- `src/url/` — parse / serialize the shareable query string (no DOM).
+- `src/ui/` — slider+textbox knobs, stage-2 toggle, global timeout-jitter toggle, freshness chip, query-string wiring, and the LTR pipeline visualization.

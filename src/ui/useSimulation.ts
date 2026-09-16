@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { UI_EVENTS_PER_FRAME, DEFAULT_CONFIG, SimulationEngine, type SimConfig, type SimSnapshot } from '../sim/index.ts'
+import { UI_EVENTS_PER_FRAME, SimulationEngine, type SimConfig, type SimSnapshot } from '../sim/index.ts'
 
 export function useSimulation(config: SimConfig) {
   const engineRef = useRef<SimulationEngine | null>(null)
   const [snapshot, setSnapshot] = useState<SimSnapshot>(() =>
-    new SimulationEngine(DEFAULT_CONFIG, { seed: 1 }).snapshot(),
+    new SimulationEngine(config, { seed: 1 }).snapshot(),
   )
   const [playing, setPlaying] = useState(true)
   const [speed, setSpeed] = useState(25)
