@@ -36,12 +36,29 @@ A batch flushes on the **earliest** of:
 
 | Knob | Fires when |
 | --- | --- |
-| **S** | sim-seconds since the batch opened |
-| **M** | raw messages received |
+| **S** / **S₁** | sim-seconds since the batch opened |
+| **M** / **M₁** | raw messages received |
 
 If S and M fall on the same sim instant, **M wins**. Each numeric knob is a
 slider and a text box bound to the same value (clamped to that knob's
 min / max / step).
+
+## Optional stage 2 (extra compaction)
+
+Stage 2 is **deeper buffering on the same shard**, not a reliability or SPOF
+feature. When enabled:
+
+1. Each raw shard `i` still flushes on **S₁** / **M₁**.
+2. That blob goes to **mid-agg `i` only** (sticky hash; same N, never N/2).
+3. Mid-agg merges payloads additively, so the same `(hour, page)` across
+   successive stage-1 flushes collapses before the DB.
+4. The mid batch flushes on the earliest of **S₂** (sim-seconds) or **M₂**
+   (count of **stage-1 blobs**, not raw views). Ties prefer M.
+5. Only that mid flush publishes to `page_views_agg` and counts DB upserts.
+
+Hero **C** is still `raw_views / db_upserts`. Merging across stage-1 flushes
+can raise C and adds latency. When stage 2 is off, the pipeline is unchanged:
+raw → `page_views_agg` → DB.
 
 Throughput: `λ = V_day / 86400` events per **sim-second**. The UI shows sim
 time and wall time separately; they are not the same clock.
@@ -71,5 +88,5 @@ if it is not already.
 
 ## Layout
 
-- `src/sim/` — pure domain: hash shard, flush race, upserts, C, discrete-event engine. No React.
-- `src/ui/` — knobs and the LTR pipeline visualization.
+- `src/sim/` — pure domain: hash shard, S/M flush race, optional stage-2 mid-agg, upserts, C, discrete-event engine. No React.
+- `src/ui/` — slider+textbox knobs, stage-2 toggle, and the LTR pipeline visualization.

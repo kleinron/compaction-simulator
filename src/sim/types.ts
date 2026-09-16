@@ -11,6 +11,12 @@ export type SimConfig = {
   S: number
   /** Ingest API calls per calendar day. λ = V_day / 86400. */
   V_day: number
+  /** Optional extra compaction on the same shard (not reliability). */
+  stage2: boolean
+  /** Stage-2 timeout in sim-seconds since the mid batch opened. */
+  S2: number
+  /** Flush mid-agg when this many stage-1 blobs have arrived. */
+  M2: number
 }
 
 export type PageView = {
@@ -28,6 +34,8 @@ export type AggBlob = {
   messages: number
   distinctKeys: number
   payload: AggPayload
+  stage: 1 | 2
+  sourceBlobs: number
 }
 
 export type DbLeaf = {

@@ -50,21 +50,32 @@ export function Metrics({
       <dl className="stat-grid">
         <Stat label="Message ratio" value={ratio} hint="last batch msgs : 1 publish" />
         <Stat
-          label="Last flush"
+          label={snapshot.config.stage2 ? 'Last DB flush' : 'Last flush'}
           value={stats.lastWinner ?? '—'}
-          hint={winnerHint(stats.lastWinner)}
+          hint={winnerHint(stats.lastWinner, stats.lastFlushStage)}
           tone={stats.lastWinner}
         />
         <Stat
           label="Cumulative ratio"
           value={stats.aggPublishes === 0 ? '—' : `${stats.messageRatio.toFixed(1)} : 1`}
-          hint="raw views : agg publishes"
+          hint="raw views : page_views_agg publishes"
         />
         <Stat
-          label="Wins S / M"
+          label={snapshot.config.stage2 ? 'Wins S₁ / M₁' : 'Wins S / M'}
           value={`${stats.wins.S} / ${stats.wins.M}`}
-          hint="earliest of timeout or messages; ties → M"
+          hint={
+            snapshot.config.stage2
+              ? 'stage 1 raw flush'
+              : 'earliest of timeout or messages; ties → M'
+          }
         />
+        {snapshot.config.stage2 ? (
+          <Stat
+            label="Wins S₂ / M₂"
+            value={`${stats.midWins.S} / ${stats.midWins.M}`}
+            hint="mid-agg extra compaction; ties → M"
+          />
+        ) : null}
       </dl>
 
       <div className="clocks">
@@ -125,8 +136,12 @@ function Stat({
   )
 }
 
-function winnerHint(winner: FlushReason | null): string {
-  if (winner === 'S') return 'timeout (sim-seconds)'
-  if (winner === 'M') return 'raw messages received'
+function winnerHint(winner: FlushReason | null, stage: 1 | 2 | null): string {
+  if (winner === 'S') {
+    return stage === 2 ? 'stage 2 timeout (sim-seconds)' : 'timeout (sim-seconds)'
+  }
+  if (winner === 'M') {
+    return stage === 2 ? 'stage 2 blob count' : 'raw messages received'
+  }
   return 'no flush yet'
 }
