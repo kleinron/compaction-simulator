@@ -91,6 +91,13 @@ a {
   gap: 10px;
 }
 
+.mast-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
 .lede {
   max-width: 62ch;
   color: var(--muted);
@@ -219,13 +226,42 @@ a {
   position: relative;
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
+}
+
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--cyan);
+  background: transparent;
+  border: 1px solid var(--cyan);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.share-btn:hover {
+  background: rgba(54, 214, 195, 0.1);
+}
+
+.share-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .share-toast {
   position: absolute;
-  left: 50%;
-  bottom: calc(100% + 6px);
-  transform: translateX(-50%);
+  right: 0;
+  top: calc(100% + 6px);
   white-space: nowrap;
   font-size: 0.72rem;
   letter-spacing: 0.04em;
@@ -236,6 +272,7 @@ a {
   border-radius: 6px;
   padding: 3px 8px;
   pointer-events: none;
+  z-index: 2;
 }
 
 .freshness-chip {
