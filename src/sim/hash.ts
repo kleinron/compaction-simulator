@@ -23,6 +23,7 @@ export function midQueueName(i: number): string {
   return `page_views_mid_${i}`
 }
 
+/** Catalog page name: pgK for 0 <= K < T (not pK — that looks like a percentile). */
 export function pageName(index: number): string {
-  return `p${index}`
+  return `pg${index}`
 }

@@ -34,10 +34,10 @@ describe('discrete-event engine', () => {
       { ...quiet, N: 1, T: 8, M: 3, S: 99 },
       { seed: 2 },
     )
-    eng.ingest('p0')
-    eng.ingest('p1')
+    eng.ingest('pg0')
+    eng.ingest('pg1')
     expect(eng.snapshot().stats.aggPublishes).toBe(0)
-    eng.ingest('p0')
+    eng.ingest('pg0')
     const snap = eng.snapshot()
     expect(snap.stats.lastWinner).toBe('M')
     expect(snap.stats.aggPublishes).toBe(1)
@@ -47,7 +47,7 @@ describe('discrete-event engine', () => {
     expect(snap.stats.C).toBeCloseTo(3 / 2)
     expect(snap.aggQueue).toHaveLength(1)
     const hour = floorToHourIso(simTimeToIso(0))
-    expect(snap.aggQueue[0].payload[hour]).toEqual({ p0: 2, p1: 1 })
+    expect(snap.aggQueue[0].payload[hour]).toEqual({ pg0: 2, pg1: 1 })
     expect(snap.shards[0].messages).toBe(0)
   })
 
@@ -56,7 +56,7 @@ describe('discrete-event engine', () => {
       { ...quiet, N: 1, T: 10, S: 5, M: 50 },
       { seed: 4 },
     )
-    eng.ingest('p0')
+    eng.ingest('pg0')
     eng.advance(4.9)
     expect(eng.snapshot().stats.aggPublishes).toBe(0)
     eng.advance(0.2)
