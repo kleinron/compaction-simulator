@@ -60,7 +60,7 @@ describe('parseConfigQuery', () => {
 
   it('clamps numeric keys through CONFIG_LIMITS', () => {
     const high = parseConfigQuery(
-      `?T=99999&N=250&M=999&S=500&V_day=500000000&S2=500&M2=999`,
+      `?T=99999&N=250&M=999&S=500&V_day=50000000000&S2=500&M2=999`,
     )
     expect(high.T).toBe(CONFIG_LIMITS.T.max)
     expect(high.N).toBe(CONFIG_LIMITS.N.max)

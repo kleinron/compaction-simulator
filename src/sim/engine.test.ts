@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { expectedCompactionC, shardSizeP } from './analytics.ts'
-import { DEFAULT_CONFIG } from './defaults.ts'
+import { arrivalRateLambda, expectedCompactionC, shardSizeP } from './analytics.ts'
+import { CONFIG_LIMITS, DEFAULT_CONFIG, UI_EVENTS_PER_FRAME } from './defaults.ts'
 import { SimulationEngine } from './engine.ts'
 import { pageName, shardIndex } from './hash.ts'
 import { floorToHourIso, simTimeToIso } from './time.ts'
@@ -103,12 +103,12 @@ describe('discrete-event engine', () => {
 
   it('clamps T, N, and V_day to the documented maxima', () => {
     const eng = new SimulationEngine(
-      { ...DEFAULT_CONFIG, T: 50_000, N: 250, M: 10, S: 10, V_day: 500_000_000 },
+      { ...DEFAULT_CONFIG, T: 50_000, N: 250, M: 10, S: 10, V_day: 50_000_000_000 },
       { seed: 8 },
     )
     expect(eng.config.T).toBe(10_000)
     expect(eng.config.N).toBe(100)
-    expect(eng.config.V_day).toBe(100_000_000)
+    expect(eng.config.V_day).toBe(10_000_000_000)
     expect(eng.config.timeoutJitter).toBe(false)
     expect(eng.snapshot().shards).toHaveLength(100)
   })
@@ -121,5 +121,20 @@ describe('discrete-event engine', () => {
     eng.runUntil(100, 10)
     expect(eng.time).toBeLessThan(40)
     expect(eng.snapshot().stats.rawViews).toBeLessThanOrEqual(10)
+  })
+
+  it('does not jump the clock when ceiling λ exhausts the per-frame budget', () => {
+    const V_day = CONFIG_LIMITS.V_day.max
+    const lambda = arrivalRateLambda(V_day)
+    expect(lambda).toBeCloseTo(10_000_000_000 / 86_400, 5)
+    expect(lambda).toBeGreaterThan(1.15e5)
+
+    const eng = new SimulationEngine(
+      { ...DEFAULT_CONFIG, T: 40, N: 2, M: 400, S: 1e9, V_day },
+      { seed: 10 },
+    )
+    eng.advance(1, UI_EVENTS_PER_FRAME)
+    expect(eng.time).toBeLessThan(0.2)
+    expect(eng.snapshot().stats.rawViews).toBeLessThanOrEqual(UI_EVENTS_PER_FRAME)
   })
 })
