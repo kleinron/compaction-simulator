@@ -1,4 +1,5 @@
 import type { FlushReason, SimSnapshot } from '../sim/index.ts'
+import { ALLOWED_SPEEDS } from './sessionStore.ts'
 
 type Props = {
   snapshot: SimSnapshot
@@ -9,8 +10,6 @@ type Props = {
   onReset: () => void
   onSpeed: (speed: number) => void
 }
-
-const SPEEDS = [1, 10, 25, 100, 400]
 
 export function Metrics({
   snapshot,
@@ -108,7 +107,7 @@ export function Metrics({
             Reset
           </button>
           <div className="speed" role="group" aria-label="Sim speed">
-            {SPEEDS.map((s) => (
+            {ALLOWED_SPEEDS.map((s) => (
               <button
                 key={s}
                 type="button"
