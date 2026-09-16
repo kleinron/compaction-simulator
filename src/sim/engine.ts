@@ -539,7 +539,7 @@ export function normalizeConfig(input: SimConfig): SimConfig {
   return {
     T: clampInt(input.T, CONFIG_LIMITS.T.min, CONFIG_LIMITS.T.max),
     N: clampInt(input.N, CONFIG_LIMITS.N.min, CONFIG_LIMITS.N.max),
-    M: Math.max(1, Math.round(input.M)),
+    M: clampInt(input.M, CONFIG_LIMITS.M.min, CONFIG_LIMITS.M.max),
     S: Math.max(CONFIG_LIMITS.S.min, input.S),
     V_day: clampInt(input.V_day, CONFIG_LIMITS.V_day.min, CONFIG_LIMITS.V_day.max),
     stage2: Boolean(input.stage2),

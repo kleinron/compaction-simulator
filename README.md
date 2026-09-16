@@ -105,7 +105,7 @@ offers it). Play is session-only and is not written. **Speed** is remembered in
 100 / 400) and is never placed in the URL. Unknown keys are ignored; `jitter`
 is accepted as an alias of `timeoutJitter`. Example:
 
-https://kleinron.github.io/compaction-simulator/?T=80&N=4&M=20&S=8&V_day=1000000&stage2=1&S2=25&M2=3&timeoutJitter=1
+https://kleinron.github.io/compaction-simulator/?T=10000&N=25&M=400&S=20&V_day=100000000&stage2=1&S2=90&M2=10&timeoutJitter=1
 
 ## GitHub Pages
 

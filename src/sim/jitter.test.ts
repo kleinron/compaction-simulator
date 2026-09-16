@@ -11,6 +11,7 @@ const quiet = {
   M: 1_000,
   S2: 1_000,
   M2: 1_000,
+  stage2: false,
 }
 
 describe('jitteredTimeout', () => {

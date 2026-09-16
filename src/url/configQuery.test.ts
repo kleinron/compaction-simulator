@@ -27,6 +27,12 @@ describe('parseConfigQuery', () => {
     expect(parseConfigQuery('?')).toEqual(DEFAULT_CONFIG)
   })
 
+  it('serializes empty-URL defaults to the canonical query string', () => {
+    expect(serializeConfigQuery(DEFAULT_CONFIG)).toBe(
+      'T=10000&N=25&M=400&S=20&V_day=100000000&stage2=1&S2=90&M2=10&timeoutJitter=1',
+    )
+  })
+
   it('overlays known keys and ignores unknown, play, and speed', () => {
     const cfg = parseConfigQuery(
       '?T=80&N=2&M=12&S=8.5&V_day=500000&stage2=1&S2=40&M2=5&timeoutJitter=true&play=0&speed=400&foo=bar',
@@ -61,7 +67,7 @@ describe('parseConfigQuery', () => {
 
   it('clamps numeric keys through CONFIG_LIMITS', () => {
     const high = parseConfigQuery(
-      `?T=99999&N=250&M=999&S=500&V_day=50000000000&S2=500&M2=999`,
+      `?T=99999&N=250&M=99999&S=500&V_day=50000000000&S2=500&M2=999`,
     )
     expect(high.T).toBe(CONFIG_LIMITS.T.max)
     expect(high.N).toBe(CONFIG_LIMITS.N.max)

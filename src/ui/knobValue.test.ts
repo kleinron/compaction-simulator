@@ -5,6 +5,7 @@ describe('clampKnob', () => {
   const N = { min: 1, max: 100, step: 1 }
   const T = { min: 10, max: 10_000, step: 10 }
   const S = { min: 0.5, max: 120, step: 0.5 }
+  const M = { min: 1, max: 5_000, step: 1 }
   const V = { min: 10_000, max: 10_000_000_000, step: 10_000 }
 
   it('snaps onto the slider step and stays inside min/max', () => {
@@ -13,6 +14,9 @@ describe('clampKnob', () => {
     expect(clampKnob(0, N)).toBe(1)
     expect(clampKnob(99, N)).toBe(99)
     expect(clampKnob(250, N)).toBe(100)
+    expect(clampKnob(400, M)).toBe(400)
+    expect(clampKnob(5_000, M)).toBe(5_000)
+    expect(clampKnob(5_001, M)).toBe(5_000)
     expect(clampKnob(10_000, T)).toBe(10_000)
     expect(clampKnob(50_000, T)).toBe(10_000)
     expect(clampKnob(10.24, S)).toBe(10)
