@@ -282,7 +282,8 @@ a {
 }
 
 .knob-text {
-  width: 7.6rem;
+  box-sizing: content-box;
+  width: 9ch;
   font-family: var(--mono);
   font-size: 0.85rem;
   color: var(--heading);
@@ -291,6 +292,10 @@ a {
   border-radius: 6px;
   padding: 3px 7px;
   text-align: right;
+}
+
+.knob-text-wide {
+  width: 11ch;
 }
 
 .knob-text:focus {
@@ -325,7 +330,7 @@ input[type='range']::-webkit-slider-thumb {
   display: grid;
   grid-template-columns: minmax(160px, 0.9fr) 18px minmax(220px, 1.4fr) 18px minmax(180px, 1fr) 18px minmax(180px, 1fr);
   gap: 8px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .node,
@@ -379,6 +384,22 @@ input[type='range']::-webkit-slider-thumb {
 .shard-col {
   display: grid;
   gap: 8px;
+  align-content: start;
+  max-height: min(70vh, 40rem);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.shard-col::-webkit-scrollbar {
+  width: 8px;
+}
+
+.shard-col::-webkit-scrollbar-thumb {
+  background: #3d4d63;
+  border-radius: 99px;
 }
 
 .shard header {

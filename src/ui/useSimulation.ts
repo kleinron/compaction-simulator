@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DEFAULT_CONFIG, SimulationEngine, type SimConfig, type SimSnapshot } from '../sim/index.ts'
+import { UI_EVENTS_PER_FRAME, DEFAULT_CONFIG, SimulationEngine, type SimConfig, type SimSnapshot } from '../sim/index.ts'
 
 export function useSimulation(config: SimConfig) {
   const engineRef = useRef<SimulationEngine | null>(null)
@@ -33,7 +33,7 @@ export function useSimulation(config: SimConfig) {
       last = now
       const engine = engineRef.current
       if (playing && engine) {
-        engine.advance(dt * speed)
+        engine.advance(dt * speed, UI_EVENTS_PER_FRAME)
         setWallElapsed((w) => w + dt)
         setSnapshot(engine.snapshot())
       }

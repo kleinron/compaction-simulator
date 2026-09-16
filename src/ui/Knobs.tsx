@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { SimConfig } from '../sim/index.ts'
-import { arrivalRateLambda, shardSizeP } from '../sim/index.ts'
+import { arrivalRateLambda, CONFIG_LIMITS, shardSizeP } from '../sim/index.ts'
 import { clampKnob, formatKnobNumber } from './knobValue.ts'
 
 type Knob = {
@@ -11,6 +11,7 @@ type Knob = {
   max: number
   step: number
   pretty?: (v: number) => string
+  wide?: boolean
 }
 
 const KNOBS: Knob[] = [
@@ -19,7 +20,7 @@ const KNOBS: Knob[] = [
     label: 'T · pages',
     hint: 'Distinct page catalog. Shard size P = T/N.',
     min: 10,
-    max: 2000,
+    max: CONFIG_LIMITS.T.max,
     step: 10,
   },
   {
@@ -27,7 +28,7 @@ const KNOBS: Knob[] = [
     label: 'N · shards',
     hint: 'Raw queues page_views_raw_0 … N−1.',
     min: 1,
-    max: 12,
+    max: CONFIG_LIMITS.N.max,
     step: 1,
   },
   {
@@ -35,7 +36,7 @@ const KNOBS: Knob[] = [
     label: 'M · messages',
     hint: 'Flush when the batch has received M raw views.',
     min: 1,
-    max: 400,
+    max: CONFIG_LIMITS.M.max,
     step: 1,
   },
   {
@@ -51,10 +52,11 @@ const KNOBS: Knob[] = [
     label: 'V_day · API/day',
     hint: 'Throughput. λ = V_day / 86400 events per sim-second.',
     min: 10_000,
-    max: 8_000_000,
+    max: CONFIG_LIMITS.V_day.max,
     step: 10_000,
     pretty: (v) =>
       v >= 1_000_000 ? `${(v / 1_000_000).toFixed(2)}M` : `${Math.round(v / 1000)}k`,
+    wide: true,
   },
 ]
 
@@ -132,7 +134,7 @@ function KnobControl({
           {knob.pretty ? <span className="knob-pretty">{knob.pretty(value)}</span> : null}
           <input
             id={textId}
-            className="knob-text"
+            className={knob.wide ? 'knob-text knob-text-wide' : 'knob-text'}
             type="text"
             inputMode={knob.step < 1 ? 'decimal' : 'numeric'}
             value={focused ? draft : formatKnobNumber(value, knob.step)}
