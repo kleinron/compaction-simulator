@@ -48,3 +48,21 @@ export function payloadRawViews(payload: AggPayload): number {
   }
   return n
 }
+
+export function mergePayloadIntoCounts(
+  counts: Map<string, number>,
+  payload: AggPayload,
+): void {
+  for (const [hour, pages] of Object.entries(payload)) {
+    for (const [page, add] of Object.entries(pages)) {
+      const key = hourPageKey(hour, page)
+      counts.set(key, (counts.get(key) ?? 0) + add)
+    }
+  }
+}
+
+export function countsTotal(counts: ReadonlyMap<string, number>): number {
+  let n = 0
+  for (const v of counts.values()) n += v
+  return n
+}

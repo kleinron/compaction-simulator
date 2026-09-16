@@ -1,15 +1,15 @@
 import { arrivalRateLambda, expectedCompactionC, expectedUniqueKeys, shardSizeP } from './analytics.ts'
-import { countsToPayload, hourPageKey } from './batch.ts'
+import { countsToPayload, countsTotal, hourPageKey, mergePayloadIntoCounts } from './batch.ts'
 import { CONFIG_LIMITS, DEFAULT_CONFIG } from './defaults.ts'
 import { flushDue } from './flush.ts'
-import { pageName, rawQueueName, shardIndex } from './hash.ts'
+import { midQueueName, pageName, rawQueueName, shardIndex } from './hash.ts'
 import { exponential, mulberry32, pickPageIndex } from './rng.ts'
 import { floorToHourIso, simTimeToIso } from './time.ts'
-import type { AggBlob, DbLeaf, FlushReason, SimConfig } from './types.ts'
+import type { AggBlob, AggPayload, DbLeaf, FlushReason, SimConfig } from './types.ts'
 import type { DbState } from './upsert.ts'
 import { additiveUpsert, compactionC, dbTotalViews } from './upsert.ts'
 
-export type EventKind = 'ingest' | 'timeout'
+export type EventKind = 'ingest' | 'timeout' | 'timeout2'
 
 export type SimEvent = {
   time: number
@@ -19,7 +19,7 @@ export type SimEvent = {
   generation: number
 }
 
-type ShardState = {
+type BatchState = {
   generation: number
   openTime: number | null
   messages: number
@@ -39,6 +39,7 @@ export type ShardSnapshot = {
   meterM: number
   lastWinner: FlushReason | null
   flushPulse: boolean
+  unit: 'msgs' | 'blobs'
 }
 
 export type SimSnapshot = {
@@ -48,6 +49,7 @@ export type SimSnapshot = {
   lambda: number
   P: number
   shards: ShardSnapshot[]
+  midShards: ShardSnapshot[]
   aggQueue: AggBlob[]
   recentIngest: { page: string; shard: number; timestamp: string }[]
   recentUpserts: DbLeaf[]
@@ -60,9 +62,11 @@ export type SimSnapshot = {
     aggPublishes: number
     C: number
     lastWinner: FlushReason | null
+    lastFlushStage: 1 | 2 | null
     lastFlushMessages: number
     lastFlushKeys: number
     wins: Record<FlushReason, number>
+    midWins: Record<FlushReason, number>
     expectedU: number
     expectedC_M_only: number
     messageRatio: number
@@ -74,10 +78,11 @@ const AGG_KEEP = 10
 const INGEST_KEEP = 12
 const UPSERT_KEEP = 12
 const PULSE_WINDOW = 0.45
+const KIND_ORDER: Record<EventKind, number> = { ingest: 0, timeout: 1, timeout2: 2 }
 
 function compareEvents(a: SimEvent, b: SimEvent): number {
   if (a.time !== b.time) return a.time - b.time
-  if (a.kind !== b.kind) return a.kind === 'ingest' ? -1 : 1
+  if (a.kind !== b.kind) return KIND_ORDER[a.kind] - KIND_ORDER[b.kind]
   return a.seq - b.seq
 }
 
@@ -139,7 +144,7 @@ class EventHeap {
   }
 }
 
-function emptyShard(): ShardState {
+function emptyBatch(): BatchState {
   return {
     generation: 0,
     openTime: null,
@@ -157,7 +162,8 @@ export class SimulationEngine {
   private seq = 0
   private readonly rng: () => number
   private readonly events = new EventHeap()
-  private readonly shards: ShardState[]
+  private readonly shards: BatchState[]
+  private readonly midShards: BatchState[]
   private readonly db: DbState = new Map()
   private readonly aggQueue: AggBlob[] = []
   private readonly recentIngest: SimSnapshot['recentIngest'] = []
@@ -166,15 +172,18 @@ export class SimulationEngine {
   private dbUpserts = 0
   private aggPublishes = 0
   private lastWinner: FlushReason | null = null
+  private lastFlushStage: 1 | 2 | null = null
   private lastFlushMessages = 0
   private lastFlushKeys = 0
   private readonly wins: Record<FlushReason, number> = { S: 0, M: 0 }
+  private readonly midWins: Record<FlushReason, number> = { S: 0, M: 0 }
   private blobId = 0
 
   constructor(config: SimConfig = DEFAULT_CONFIG, opts?: { seed?: number }) {
     this.config = normalizeConfig(config)
     this.rng = mulberry32(opts?.seed ?? 0xc0ffee)
-    this.shards = Array.from({ length: this.config.N }, () => emptyShard())
+    this.shards = Array.from({ length: this.config.N }, () => emptyBatch())
+    this.midShards = Array.from({ length: this.config.N }, () => emptyBatch())
     const lambda = arrivalRateLambda(this.config.V_day)
     if (lambda > 0) {
       this.events.push({
@@ -213,8 +222,6 @@ export class SimulationEngine {
       processed += 1
       if (processed >= maxEvents) capped = true
     }
-    // Stay on the last processed event when the budget is spent so the
-    // sim clock does not run ahead of work at high λ.
     if (!capped) this.simTime = Math.max(this.simTime, targetTime)
   }
 
@@ -222,8 +229,18 @@ export class SimulationEngine {
     const { config } = this
     const P = shardSizeP(config.T, config.N)
     const lambda = arrivalRateLambda(config.V_day)
-    const shards = this.shards.map((shard, index) => this.snapshotShard(shard, index))
-    const pendingViews = shards.reduce((sum, shard) => sum + shard.messages, 0)
+    const shards = this.shards.map((shard, index) =>
+      this.snapshotBatch(shard, index, rawQueueName(index), config.S, config.M, 'msgs'),
+    )
+    const midShards = config.stage2
+      ? this.midShards.map((shard, index) =>
+          this.snapshotBatch(shard, index, midQueueName(index), config.S2, config.M2, 'blobs'),
+        )
+      : []
+    const pendingStage1 = shards.reduce((sum, shard) => sum + shard.messages, 0)
+    const pendingMid = config.stage2
+      ? this.midShards.reduce((sum, shard) => sum + countsTotal(shard.counts), 0)
+      : 0
     return {
       simTime: this.simTime,
       simIso: simTimeToIso(this.simTime),
@@ -231,21 +248,24 @@ export class SimulationEngine {
       lambda,
       P,
       shards,
+      midShards,
       aggQueue: this.aggQueue.slice(-AGG_KEEP),
       recentIngest: this.recentIngest.slice(-INGEST_KEEP),
       recentUpserts: this.recentUpserts.slice(-UPSERT_KEEP),
       dbKeyCount: this.db.size,
       dbTotalViews: dbTotalViews(this.db),
-      pendingViews,
+      pendingViews: pendingStage1 + pendingMid,
       stats: {
         rawViews: this.rawViews,
         dbUpserts: this.dbUpserts,
         aggPublishes: this.aggPublishes,
         C: compactionC(this.rawViews, this.dbUpserts),
         lastWinner: this.lastWinner,
+        lastFlushStage: this.lastFlushStage,
         lastFlushMessages: this.lastFlushMessages,
         lastFlushKeys: this.lastFlushKeys,
         wins: { ...this.wins },
+        midWins: { ...this.midWins },
         expectedU: expectedUniqueKeys(P, config.M),
         expectedC_M_only: expectedCompactionC(P, config.M),
         messageRatio:
@@ -254,13 +274,19 @@ export class SimulationEngine {
     }
   }
 
-  private snapshotShard(shard: ShardState, index: number): ShardSnapshot {
-    const { S, M } = this.config
+  private snapshotBatch(
+    shard: BatchState,
+    index: number,
+    queueName: string,
+    S: number,
+    M: number,
+    unit: ShardSnapshot['unit'],
+  ): ShardSnapshot {
     const open = shard.openTime !== null
     const elapsed = open ? Math.max(0, this.simTime - shard.openTime!) : 0
     return {
       index,
-      queueName: rawQueueName(index),
+      queueName,
       messages: shard.messages,
       distinctKeys: shard.counts.size,
       openTime: shard.openTime,
@@ -270,6 +296,7 @@ export class SimulationEngine {
       flushPulse:
         shard.lastFlushSimTime !== null &&
         this.simTime - shard.lastFlushSimTime <= PULSE_WINDOW,
+      unit,
     }
   }
 
@@ -289,6 +316,19 @@ export class SimulationEngine {
       }
       return
     }
+    if (ev.kind === 'timeout2') {
+      const mid = this.midShards[ev.shard]
+      if (!mid || mid.generation !== ev.generation) return
+      if (mid.openTime === null || mid.messages === 0) return
+      const due = flushDue({
+        openTime: mid.openTime,
+        simTime: ev.time,
+        S: this.config.S2,
+        mReachedAt: mid.mReachedAt,
+      })
+      if (due) this.flushMid(ev.shard, due.reason, due.time)
+      return
+    }
     const shard = this.shards[ev.shard]
     if (!shard || shard.generation !== ev.generation) return
     if (shard.openTime === null || shard.messages === 0) return
@@ -298,7 +338,7 @@ export class SimulationEngine {
       S: this.config.S,
       mReachedAt: shard.mReachedAt,
     })
-    if (due) this.flushShard(ev.shard, due.reason, due.time)
+    if (due) this.flushRaw(ev.shard, due.reason, due.time)
   }
 
   private handlePageView(page: string, time: number): void {
@@ -333,47 +373,129 @@ export class SimulationEngine {
       S: this.config.S,
       mReachedAt: shard.mReachedAt,
     })
-    if (due) this.flushShard(shardId, due.reason, due.time)
+    if (due) this.flushRaw(shardId, due.reason, due.time)
   }
 
-  private flushShard(shardId: number, winner: FlushReason, time: number): void {
+  private flushRaw(shardId: number, winner: FlushReason, time: number): void {
     const shard = this.shards[shardId]
     if (shard.messages === 0 || shard.counts.size === 0) return
     const payload = countsToPayload(shard.counts)
     const distinctKeys = shard.counts.size
     const messages = shard.messages
-    const blob: AggBlob = {
-      id: ++this.blobId,
+    this.wins[winner] += 1
+    shard.lastWinner = winner
+    shard.lastFlushSimTime = time
+    shard.generation += 1
+    shard.openTime = null
+    shard.messages = 0
+    shard.counts = new Map()
+    shard.mReachedAt = null
+
+    if (this.config.stage2) {
+      this.ingestMidBlob(shardId, payload, time)
+      return
+    }
+    this.publishAgg({
       shard: shardId,
-      publishedAt: time,
       winner,
       messages,
       distinctKeys,
       payload,
+      stage: 1,
+      sourceBlobs: 1,
+      publishedAt: time,
+    })
+  }
+
+  private ingestMidBlob(shardId: number, payload: AggPayload, time: number): void {
+    const mid = this.midShards[shardId]
+    if (mid.openTime === null) {
+      mid.openTime = time
+      this.events.push({
+        time: time + this.config.S2,
+        seq: this.seq++,
+        kind: 'timeout2',
+        shard: shardId,
+        generation: mid.generation,
+      })
+    }
+    mergePayloadIntoCounts(mid.counts, payload)
+    mid.messages += 1
+    if (mid.messages >= this.config.M2 && mid.mReachedAt === null) {
+      mid.mReachedAt = time
+    }
+    const due = flushDue({
+      openTime: mid.openTime,
+      simTime: time,
+      S: this.config.S2,
+      mReachedAt: mid.mReachedAt,
+    })
+    if (due) this.flushMid(shardId, due.reason, due.time)
+  }
+
+  private flushMid(shardId: number, winner: FlushReason, time: number): void {
+    const mid = this.midShards[shardId]
+    if (mid.messages === 0 || mid.counts.size === 0) return
+    const payload = countsToPayload(mid.counts)
+    const distinctKeys = mid.counts.size
+    const sourceBlobs = mid.messages
+    const messages = countsTotal(mid.counts)
+    this.midWins[winner] += 1
+    mid.lastWinner = winner
+    mid.lastFlushSimTime = time
+    mid.generation += 1
+    mid.openTime = null
+    mid.messages = 0
+    mid.counts = new Map()
+    mid.mReachedAt = null
+    this.publishAgg({
+      shard: shardId,
+      winner,
+      messages,
+      distinctKeys,
+      payload,
+      stage: 2,
+      sourceBlobs,
+      publishedAt: time,
+    })
+  }
+
+  private publishAgg(args: {
+    shard: number
+    winner: FlushReason
+    messages: number
+    distinctKeys: number
+    payload: AggPayload
+    stage: 1 | 2
+    sourceBlobs: number
+    publishedAt: number
+  }): void {
+    const blob: AggBlob = {
+      id: ++this.blobId,
+      shard: args.shard,
+      publishedAt: args.publishedAt,
+      winner: args.winner,
+      messages: args.messages,
+      distinctKeys: args.distinctKeys,
+      payload: args.payload,
+      stage: args.stage,
+      sourceBlobs: args.sourceBlobs,
     }
     this.aggQueue.push(blob)
     if (this.aggQueue.length > AGG_KEEP * 3) {
       this.aggQueue.splice(0, this.aggQueue.length - AGG_KEEP)
     }
     this.aggPublishes += 1
-    const { upserts, leaves } = additiveUpsert(this.db, payload)
+    const { upserts, leaves } = additiveUpsert(this.db, args.payload)
     this.dbUpserts += upserts
     for (const leaf of leaves) {
       this.recentUpserts.push(leaf)
       if (this.recentUpserts.length > UPSERT_KEEP) this.recentUpserts.shift()
     }
-    this.lastWinner = winner
-    this.lastFlushMessages = messages
-    this.lastFlushKeys = distinctKeys
-    this.wins[winner] += 1
-    shard.lastWinner = winner
-    shard.lastFlushSimTime = time
-
-    shard.generation += 1
-    shard.openTime = null
-    shard.messages = 0
-    shard.counts = new Map()
-    shard.mReachedAt = null
+    this.lastWinner = args.winner
+    this.lastFlushStage = args.stage
+    this.lastFlushMessages = args.messages
+    this.lastFlushKeys = args.distinctKeys
   }
 }
 
@@ -382,9 +504,11 @@ export function normalizeConfig(input: SimConfig): SimConfig {
     T: clampInt(input.T, CONFIG_LIMITS.T.min, CONFIG_LIMITS.T.max),
     N: clampInt(input.N, CONFIG_LIMITS.N.min, CONFIG_LIMITS.N.max),
     M: Math.max(1, Math.round(input.M)),
-    // Tests use a huge S to isolate M; only enforce the floor here.
     S: Math.max(CONFIG_LIMITS.S.min, input.S),
     V_day: clampInt(input.V_day, CONFIG_LIMITS.V_day.min, CONFIG_LIMITS.V_day.max),
+    stage2: Boolean(input.stage2),
+    S2: Math.max(CONFIG_LIMITS.S2.min, input.S2 ?? DEFAULT_CONFIG.S2),
+    M2: Math.max(1, Math.round(input.M2 ?? DEFAULT_CONFIG.M2)),
   }
 }
 

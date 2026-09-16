@@ -1,10 +1,19 @@
 export { arrivalRateLambda, expectedCompactionC, expectedUniqueKeys, shardSizeP, uniqueAfterThrows } from './analytics.ts'
-export { clonePayload, countDistinctKeys, countsToPayload, hourPageKey, mergeView, payloadRawViews } from './batch.ts'
+export {
+  clonePayload,
+  countDistinctKeys,
+  countsToPayload,
+  countsTotal,
+  hourPageKey,
+  mergePayloadIntoCounts,
+  mergeView,
+  payloadRawViews,
+} from './batch.ts'
 export { CONFIG_LIMITS, DEFAULT_CONFIG, SECONDS_PER_DAY, UI_EVENTS_PER_FRAME } from './defaults.ts'
 export { SimulationEngine, normalizeConfig } from './engine.ts'
 export type { ShardSnapshot, SimSnapshot } from './engine.ts'
 export { earliestFlush, flushDue } from './flush.ts'
-export { hashPage, pageName, rawQueueName, shardIndex } from './hash.ts'
+export { hashPage, midQueueName, pageName, rawQueueName, shardIndex } from './hash.ts'
 export { exponential, mulberry32, pickPageIndex } from './rng.ts'
 export { SIM_EPOCH_MS, floorToHourIso, simTimeToIso, toIsoUtc } from './time.ts'
 export type { AggBlob, AggPayload, DbLeaf, FlushCandidate, FlushReason, PageView, SimConfig } from './types.ts'

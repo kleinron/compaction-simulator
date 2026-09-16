@@ -19,6 +19,10 @@ export function rawQueueName(i: number): string {
   return `page_views_raw_${i}`
 }
 
+export function midQueueName(i: number): string {
+  return `page_views_mid_${i}`
+}
+
 export function pageName(index: number): string {
   return `p${index}`
 }

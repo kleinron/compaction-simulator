@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hashPage, pageName, rawQueueName, shardIndex } from './hash.ts'
+import { hashPage, midQueueName, pageName, rawQueueName, shardIndex } from './hash.ts'
 
 describe('hash sharding', () => {
   it('is deterministic for the same page', () => {
@@ -20,6 +20,11 @@ describe('hash sharding', () => {
   it('names raw queues page_views_raw_<i>', () => {
     expect(rawQueueName(0)).toBe('page_views_raw_0')
     expect(rawQueueName(3)).toBe('page_views_raw_3')
+  })
+
+  it('names mid-agg queues page_views_mid_<i>', () => {
+    expect(midQueueName(0)).toBe('page_views_mid_0')
+    expect(midQueueName(3)).toBe('page_views_mid_3')
   })
 
   it('keeps a page on one shard as N stays fixed', () => {

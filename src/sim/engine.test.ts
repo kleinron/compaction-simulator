@@ -85,7 +85,7 @@ describe('discrete-event engine', () => {
     const T = 20
     const M = 5
     const eng = new SimulationEngine(
-      { T, N: 1, M, S: 1e9, V_day: 86_400 },
+      { ...DEFAULT_CONFIG, T, N: 1, M, S: 1e9, V_day: 86_400 },
       { seed: 7 },
     )
     let guard = 0
@@ -103,7 +103,7 @@ describe('discrete-event engine', () => {
 
   it('clamps T, N, and V_day to the documented maxima', () => {
     const eng = new SimulationEngine(
-      { T: 50_000, N: 250, M: 10, S: 10, V_day: 500_000_000 },
+      { ...DEFAULT_CONFIG, T: 50_000, N: 250, M: 10, S: 10, V_day: 500_000_000 },
       { seed: 8 },
     )
     expect(eng.config.T).toBe(10_000)

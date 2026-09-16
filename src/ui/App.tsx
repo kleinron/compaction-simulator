@@ -18,10 +18,10 @@ export default function App() {
           <h1>Compaction simulator</h1>
         </div>
         <p className="lede">
-          Discrete-event model of ingest → hashed raw shards → per-shard batch
-          merge → a single <code>page_views_agg</code> blob → additive DB
+          Discrete-event model of ingest → hashed raw shards → optional same-shard
+          mid-agg → a single <code>page_views_agg</code> blob → additive DB
           upserts. Compaction <strong>C</strong> is how many raw views each
-          upsert absorbed.
+          upsert absorbed. Stage 2 is extra buffering, not a reliability feature.
         </p>
       </header>
 

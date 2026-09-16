@@ -3,8 +3,10 @@ import type { SimConfig } from '../sim/index.ts'
 import { arrivalRateLambda, CONFIG_LIMITS, shardSizeP } from '../sim/index.ts'
 import { clampKnob, formatKnobNumber } from './knobValue.ts'
 
+type NumericKnobKey = Exclude<keyof SimConfig, 'stage2'>
+
 type Knob = {
-  key: keyof SimConfig
+  key: NumericKnobKey
   label: string
   hint: string
   min: number
@@ -14,7 +16,7 @@ type Knob = {
   wide?: boolean
 }
 
-const KNOBS: Knob[] = [
+const CORE_KNOBS: Knob[] = [
   {
     key: 'T',
     label: 'T · pages',
@@ -26,26 +28,10 @@ const KNOBS: Knob[] = [
   {
     key: 'N',
     label: 'N · shards',
-    hint: 'Raw queues page_views_raw_0 … N−1.',
+    hint: 'Raw queues page_views_raw_0 … N−1. Stage 2 uses the same N.',
     min: 1,
     max: CONFIG_LIMITS.N.max,
     step: 1,
-  },
-  {
-    key: 'M',
-    label: 'M · messages',
-    hint: 'Flush when the batch has received M raw views.',
-    min: 1,
-    max: CONFIG_LIMITS.M.max,
-    step: 1,
-  },
-  {
-    key: 'S',
-    label: 'S · timeout (s)',
-    hint: 'Sim-seconds since the batch opened. Timeout knob, not shard size.',
-    min: 0.5,
-    max: 120,
-    step: 0.5,
   },
   {
     key: 'V_day',
@@ -57,6 +43,44 @@ const KNOBS: Knob[] = [
     pretty: (v) =>
       v >= 1_000_000 ? `${(v / 1_000_000).toFixed(2)}M` : `${Math.round(v / 1000)}k`,
     wide: true,
+  },
+]
+
+const STAGE1_KNOBS: Knob[] = [
+  {
+    key: 'S',
+    label: 'S₁ · timeout (s)',
+    hint: 'Stage 1: sim-seconds since the raw batch opened. Not shard size.',
+    min: 0.5,
+    max: CONFIG_LIMITS.S.max,
+    step: 0.5,
+  },
+  {
+    key: 'M',
+    label: 'M₁ · messages',
+    hint: 'Stage 1: flush when the raw batch has received M views.',
+    min: 1,
+    max: CONFIG_LIMITS.M.max,
+    step: 1,
+  },
+]
+
+const STAGE2_KNOBS: Knob[] = [
+  {
+    key: 'S2',
+    label: 'S₂ · timeout (s)',
+    hint: 'Stage 2: sim-seconds since the mid-agg batch opened.',
+    min: 0.5,
+    max: CONFIG_LIMITS.S2.max,
+    step: 0.5,
+  },
+  {
+    key: 'M2',
+    label: 'M₂ · blobs',
+    hint: 'Stage 2: flush when this many stage-1 blobs have arrived (not raw views).',
+    min: CONFIG_LIMITS.M2.min,
+    max: CONFIG_LIMITS.M2.max,
+    step: 1,
   },
 ]
 
@@ -79,11 +103,42 @@ export function Knobs({ value, onChange }: Props) {
         </p>
       </header>
       <div className="knob-grid">
-        {KNOBS.map((knob) => (
+        {CORE_KNOBS.map((knob) => (
           <KnobControl
             key={knob.key}
             knob={knob}
             value={value[knob.key]}
+            onCommit={(next) => onChange({ ...value, [knob.key]: next })}
+          />
+        ))}
+        {STAGE1_KNOBS.map((knob) => (
+          <KnobControl
+            key={knob.key}
+            knob={knob}
+            value={value[knob.key]}
+            onCommit={(next) => onChange({ ...value, [knob.key]: next })}
+          />
+        ))}
+        <label className="stage2-toggle">
+          <input
+            type="checkbox"
+            checked={value.stage2}
+            onChange={(e) => onChange({ ...value, stage2: e.target.checked })}
+          />
+          <span>
+            <strong>Enable stage 2</strong>
+            <span className="knob-hint">
+              Extra compaction / deeper buffering on the same shard. Same N,
+              sticky hash i → i. This is not reliability or SPOF protection.
+            </span>
+          </span>
+        </label>
+        {STAGE2_KNOBS.map((knob) => (
+          <KnobControl
+            key={knob.key}
+            knob={knob}
+            value={value[knob.key]}
+            disabled={!value.stage2}
             onCommit={(next) => onChange({ ...value, [knob.key]: next })}
           />
         ))}
@@ -96,10 +151,12 @@ function KnobControl({
   knob,
   value,
   onCommit,
+  disabled = false,
 }: {
   knob: Knob
   value: number
   onCommit: (next: number) => void
+  disabled?: boolean
 }) {
   const [draft, setDraft] = useState(formatKnobNumber(value, knob.step))
   const [focused, setFocused] = useState(false)
@@ -127,7 +184,7 @@ function KnobControl({
   const textId = `knob-${knob.key}-text`
 
   return (
-    <div className="knob">
+    <div className={disabled ? 'knob dim' : 'knob'}>
       <div className="knob-top">
         <label htmlFor={labelId}>{knob.label}</label>
         <span className="knob-inputs">
@@ -138,7 +195,8 @@ function KnobControl({
             type="text"
             inputMode={knob.step < 1 ? 'decimal' : 'numeric'}
             value={focused ? draft : formatKnobNumber(value, knob.step)}
-            aria-label={`${knob.label} value`}
+            aria-label={knob.label}
+            disabled={disabled}
             onFocus={() => {
               setFocused(true)
               setDraft(formatKnobNumber(value, knob.step))
@@ -162,6 +220,7 @@ function KnobControl({
         step={knob.step}
         value={value}
         aria-label={knob.label}
+        disabled={disabled}
         onChange={(e) => commit(Number(e.target.value))}
       />
       <span className="knob-hint">{knob.hint}</span>
