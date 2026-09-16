@@ -9,7 +9,8 @@ import {
 /**
  * First load reads `window.location.search` into knobs. Later knob/toggle
  * changes rewrite the query with debounced `history.replaceState` (shareable,
- * no extra history entries). Play and speed stay session-only.
+ * no extra history entries). Speed lives in localStorage, not the URL. Play
+ * stays session-only.
  */
 export function useShareableConfig(): [SimConfig, (next: SimConfig) => void] {
   const [config, setConfig] = useState<SimConfig>(() =>
