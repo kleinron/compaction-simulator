@@ -17,6 +17,11 @@ export type SimConfig = {
   S2: number
   /** Flush mid-agg when this many stage-1 blobs have arrived. */
   M2: number
+  /**
+   * Global timeout jitter for every batch (stage-1 S and stage-2 S₂).
+   * Off: deadline = S (or S₂). On: each new batch samples S * U(0.9, 1.1).
+   */
+  timeoutJitter: boolean
 }
 
 export type PageView = {

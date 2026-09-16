@@ -171,6 +171,29 @@ a {
   font-family: var(--mono);
 }
 
+.freshness-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 14px;
+  background: var(--bg-node);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px 7px;
+}
+
+.freshness-chip .eyebrow {
+  margin: 0;
+}
+
+.fresh-value {
+  font-family: var(--mono);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--heading);
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -307,7 +330,7 @@ a {
   opacity: 0.45;
 }
 
-.stage2-toggle {
+.knob-toggle {
   grid-column: 1 / -1;
   display: flex;
   gap: 12px;
@@ -319,12 +342,12 @@ a {
   cursor: pointer;
 }
 
-.stage2-toggle input {
+.knob-toggle input {
   margin-top: 4px;
   accent-color: var(--cyan);
 }
 
-.stage2-toggle strong {
+.knob-toggle strong {
   display: block;
   color: var(--heading);
   margin-bottom: 4px;
