@@ -5,7 +5,7 @@ describe('clampKnob', () => {
   const N = { min: 1, max: 100, step: 1 }
   const T = { min: 10, max: 10_000, step: 10 }
   const S = { min: 0.5, max: 120, step: 0.5 }
-  const V = { min: 10_000, max: 100_000_000, step: 10_000 }
+  const V = { min: 10_000, max: 10_000_000_000, step: 10_000 }
 
   it('snaps onto the slider step and stays inside min/max', () => {
     expect(clampKnob(7.4, N)).toBe(7)
@@ -19,7 +19,8 @@ describe('clampKnob', () => {
     expect(clampKnob(10.26, S)).toBe(10.5)
     expect(clampKnob(15_000, V)).toBe(20_000)
     expect(clampKnob(100_000_000, V)).toBe(100_000_000)
-    expect(clampKnob(250_000_000, V)).toBe(100_000_000)
+    expect(clampKnob(10_000_000_000, V)).toBe(10_000_000_000)
+    expect(clampKnob(50_000_000_000, V)).toBe(10_000_000_000)
   })
 
   it('rejects non-finite input by returning min', () => {
@@ -31,6 +32,6 @@ describe('clampKnob', () => {
     expect(formatKnobNumber(30, 1)).toBe('30')
     expect(formatKnobNumber(10, 0.5)).toBe('10.0')
     expect(formatKnobNumber(1_000_000, 10_000)).toBe('1000000')
-    expect(formatKnobNumber(100_000_000, 10_000)).toBe('100000000')
+    expect(formatKnobNumber(10_000_000_000, 10_000)).toBe('10000000000')
   })
 })

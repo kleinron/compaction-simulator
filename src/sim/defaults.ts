@@ -21,7 +21,7 @@ export const CONFIG_LIMITS = {
   N: { min: 1, max: 100 },
   M: { min: 1, max: 400 },
   S: { min: 0.05, max: 120 },
-  V_day: { min: 0, max: 100_000_000 },
+  V_day: { min: 0, max: 10_000_000_000 },
   S2: { min: 0.05, max: 120 },
   M2: { min: 2, max: 400 },
 } as const

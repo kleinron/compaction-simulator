@@ -41,7 +41,11 @@ const CORE_KNOBS: Knob[] = [
     max: CONFIG_LIMITS.V_day.max,
     step: 10_000,
     pretty: (v) =>
-      v >= 1_000_000 ? `${(v / 1_000_000).toFixed(2)}M` : `${Math.round(v / 1000)}k`,
+      v >= 1_000_000_000
+        ? `${(v / 1_000_000_000).toFixed(2)}B`
+        : v >= 1_000_000
+          ? `${(v / 1_000_000).toFixed(2)}M`
+          : `${Math.round(v / 1000)}k`,
     wide: true,
   },
 ]

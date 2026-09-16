@@ -103,12 +103,12 @@ describe('discrete-event engine', () => {
 
   it('clamps T, N, and V_day to the documented maxima', () => {
     const eng = new SimulationEngine(
-      { ...DEFAULT_CONFIG, T: 50_000, N: 250, M: 10, S: 10, V_day: 500_000_000 },
+      { ...DEFAULT_CONFIG, T: 50_000, N: 250, M: 10, S: 10, V_day: 50_000_000_000 },
       { seed: 8 },
     )
     expect(eng.config.T).toBe(10_000)
     expect(eng.config.N).toBe(100)
-    expect(eng.config.V_day).toBe(100_000_000)
+    expect(eng.config.V_day).toBe(10_000_000_000)
     expect(eng.config.timeoutJitter).toBe(false)
     expect(eng.snapshot().shards).toHaveLength(100)
   })
