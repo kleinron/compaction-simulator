@@ -57,9 +57,13 @@ function isAbort(err: unknown): boolean {
 }
 
 async function copyText(text: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text)
-    return
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return
+    }
+  } catch {
+    // Permissions or non-secure context — fall through to execCommand.
   }
   const el = document.createElement('textarea')
   el.value = text
