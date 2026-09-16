@@ -12,7 +12,7 @@ export function Pipeline({ snapshot }: Props) {
       <header className="panel-head">
         <h2 id="pipe-title">Pipeline</h2>
         <p className="muted">
-          Ingest → N raw shards → competing S/K/M flush → one blob on{' '}
+          Ingest → N raw shards → competing S/M flush → one blob on{' '}
           <code>page_views_agg</code> → additive DB upserts. Single boxes are SPOFs.
         </p>
       </header>
@@ -113,7 +113,6 @@ function ShardCard({ shard }: { shard: ShardSnapshot }) {
       </header>
       <div className="meters" aria-label={`Flush meters for ${shard.queueName}`}>
         <Meter reason="S" fill={shard.meterS} />
-        <Meter reason="K" fill={shard.meterK} />
         <Meter reason="M" fill={shard.meterM} />
       </div>
     </article>

@@ -1,4 +1,4 @@
-export type FlushReason = 'S' | 'K' | 'M'
+export type FlushReason = 'S' | 'M'
 
 export type SimConfig = {
   /** Distinct page catalog size. */
@@ -9,8 +9,6 @@ export type SimConfig = {
   M: number
   /** Flush timeout in sim-seconds since the batch opened. */
   S: number
-  /** Flush when this many distinct (hour, page) keys sit in the merge. */
-  K: number
   /** Ingest API calls per calendar day. λ = V_day / 86400. */
   V_day: number
 }

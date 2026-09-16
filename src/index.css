@@ -200,9 +200,6 @@ a {
 .winner-S {
   color: var(--amber) !important;
 }
-.winner-K {
-  color: var(--pink) !important;
-}
 .winner-M {
   color: var(--green) !important;
 }
@@ -267,12 +264,38 @@ a {
 .knob-top {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   font-size: 0.9rem;
 }
 
-.knob output {
+.knob-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.knob-pretty {
   font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.knob-text {
+  width: 7.6rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
   color: var(--heading);
+  background: #1c2532;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 7px;
+  text-align: right;
+}
+
+.knob-text:focus {
+  outline: 1px solid var(--cyan);
+  border-color: #2c6b6a;
 }
 
 .knob-hint {
@@ -386,9 +409,6 @@ input[type='range']::-webkit-slider-thumb {
 
 .meter-S {
   color: var(--amber);
-}
-.meter-K {
-  color: var(--pink);
 }
 .meter-M {
   color: var(--green);

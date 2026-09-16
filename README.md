@@ -37,8 +37,11 @@ A batch flushes on the **earliest** of:
 | Knob | Fires when |
 | --- | --- |
 | **S** | sim-seconds since the batch opened |
-| **K** | distinct `(hour, page)` keys in the pending merge |
 | **M** | raw messages received |
+
+If S and M fall on the same sim instant, **M wins**. Each numeric knob is a
+slider and a text box bound to the same value (clamped to that knob's
+min / max / step).
 
 Throughput: `λ = V_day / 86400` events per **sim-second**. The UI shows sim
 time and wall time separately; they are not the same clock.

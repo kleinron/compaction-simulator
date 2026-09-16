@@ -9,7 +9,6 @@ const quiet = {
   ...DEFAULT_CONFIG,
   V_day: 0,
   S: 1_000,
-  K: 1_000,
   M: 1_000,
 }
 
@@ -32,7 +31,7 @@ describe('discrete-event engine', () => {
 
   it('flushes on M, publishes one agg blob, and upserts each leaf', () => {
     const eng = new SimulationEngine(
-      { ...quiet, N: 1, T: 8, M: 3, S: 99, K: 99 },
+      { ...quiet, N: 1, T: 8, M: 3, S: 99 },
       { seed: 2 },
     )
     eng.ingest('p0')
@@ -52,20 +51,9 @@ describe('discrete-event engine', () => {
     expect(snap.shards[0].messages).toBe(0)
   })
 
-  it('flushes on K when distinct (hour, page) keys hit first', () => {
-    const eng = new SimulationEngine(
-      { ...quiet, N: 1, T: 10, K: 2, M: 50, S: 99 },
-      { seed: 3 },
-    )
-    eng.ingest('p0')
-    eng.ingest('p1')
-    expect(eng.snapshot().stats.lastWinner).toBe('K')
-    expect(eng.snapshot().stats.dbUpserts).toBe(2)
-  })
-
   it('flushes on S when the sim-second timeout elapses first', () => {
     const eng = new SimulationEngine(
-      { ...quiet, N: 1, T: 10, S: 5, M: 50, K: 50 },
+      { ...quiet, N: 1, T: 10, S: 5, M: 50 },
       { seed: 4 },
     )
     eng.ingest('p0')
@@ -79,19 +67,9 @@ describe('discrete-event engine', () => {
     expect(snap.simIso).not.toBe(new Date().toISOString())
   })
 
-  it('prefers M when M and K trip on the same ingest', () => {
-    const eng = new SimulationEngine(
-      { ...quiet, N: 1, T: 10, M: 2, K: 2, S: 99 },
-      { seed: 5 },
-    )
-    eng.ingest('p0')
-    eng.ingest('p1')
-    expect(eng.snapshot().stats.lastWinner).toBe('M')
-  })
-
   it('keeps live C = raw_views / db_upserts and preserves view totals', () => {
     const eng = new SimulationEngine(
-      { ...DEFAULT_CONFIG, T: 40, N: 2, M: 8, S: 100, K: 100, V_day: 86_400 },
+      { ...DEFAULT_CONFIG, T: 40, N: 2, M: 8, S: 100, V_day: 86_400 },
       { seed: 6 },
     )
     eng.runUntil(80)
@@ -107,7 +85,7 @@ describe('discrete-event engine', () => {
     const T = 20
     const M = 5
     const eng = new SimulationEngine(
-      { T, N: 1, M, S: 1e9, K: 1e9, V_day: 86_400 },
+      { T, N: 1, M, S: 1e9, V_day: 86_400 },
       { seed: 7 },
     )
     let guard = 0
@@ -119,7 +97,6 @@ describe('discrete-event engine', () => {
     expect(snap.stats.aggPublishes).toBeGreaterThanOrEqual(250)
     expect(snap.stats.wins.M).toBe(snap.stats.aggPublishes)
     expect(snap.stats.wins.S).toBe(0)
-    expect(snap.stats.wins.K).toBe(0)
     const analytic = expectedCompactionC(T, M)
     expect(snap.stats.C).toBeCloseTo(analytic, 1)
   })
