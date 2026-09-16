@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { SimConfig } from '../sim/index.ts'
 import { arrivalRateLambda, CONFIG_LIMITS, shardSizeP } from '../sim/index.ts'
-import { clampKnob, formatKnobNumber } from './knobValue.ts'
+import { clampKnob, formatKnobNumber, formatVDayPretty } from './knobValue.ts'
 
 type NumericKnobKey = Exclude<keyof SimConfig, 'stage2' | 'timeoutJitter'>
 
@@ -40,12 +40,7 @@ const CORE_KNOBS: Knob[] = [
     min: 10_000,
     max: CONFIG_LIMITS.V_day.max,
     step: 10_000,
-    pretty: (v) =>
-      v >= 1_000_000_000
-        ? `${(v / 1_000_000_000).toFixed(2)}B`
-        : v >= 1_000_000
-          ? `${(v / 1_000_000).toFixed(2)}M`
-          : `${Math.round(v / 1000)}k`,
+    pretty: formatVDayPretty,
     wide: true,
   },
 ]

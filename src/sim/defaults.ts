@@ -26,5 +26,7 @@ export const CONFIG_LIMITS = {
   M2: { min: 2, max: 400 },
 } as const
 
-/** Per animation-frame event budget so high λ does not stall the UI. */
+/** Per animation-frame event budget so high λ does not stall the UI.
+ *  At V_day = 10B, λ ≈ 1.16e5 / sim-s; runUntil must not jump the clock
+ *  when this cap is hit. */
 export const UI_EVENTS_PER_FRAME = 4_000

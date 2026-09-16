@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampKnob, formatKnobNumber } from './knobValue.ts'
+import { clampKnob, formatKnobNumber, formatVDayPretty } from './knobValue.ts'
 
 describe('clampKnob', () => {
   const N = { min: 1, max: 100, step: 1 }
@@ -32,6 +32,14 @@ describe('clampKnob', () => {
     expect(formatKnobNumber(30, 1)).toBe('30')
     expect(formatKnobNumber(10, 0.5)).toBe('10.0')
     expect(formatKnobNumber(1_000_000, 10_000)).toBe('1000000')
+    expect(formatKnobNumber(10_000_000_000, 10_000)).toBe('10000000000')
+  })
+
+  it('pretty-prints large V_day while the text box keeps the full integer', () => {
+    expect(formatVDayPretty(10_000_000_000)).toBe('10.00B')
+    expect(formatVDayPretty(100_000_000)).toBe('100.00M')
+    expect(formatVDayPretty(1_000_000)).toBe('1.00M')
+    expect(formatVDayPretty(50_000)).toBe('50k')
     expect(formatKnobNumber(10_000_000_000, 10_000)).toBe('10000000000')
   })
 })

@@ -13,6 +13,13 @@ export function formatKnobNumber(value: number, step: number): string {
   return value.toFixed(decimalPlaces(step))
 }
 
+/** Compact readout next to the V_day text box. The text box still shows the full integer. */
+export function formatVDayPretty(v: number): string {
+  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`
+  return `${Math.round(v / 1000)}k`
+}
+
 function decimalPlaces(step: number): number {
   if (!Number.isFinite(step) || step >= 1) return 0
   const text = step.toString()
