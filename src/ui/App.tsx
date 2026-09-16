@@ -6,7 +6,7 @@ import { useSimulation } from './useSimulation.ts'
 
 export default function App() {
   const [config, setConfig] = useShareableConfig()
-  const { snapshot, playing, setPlaying, speed, setSpeed, wallElapsed, reset } =
+  const { snapshot, playing, setPlaying, speed, setSpeed, wallElapsed, reset, rolling } =
     useSimulation(config)
 
   return (
@@ -26,6 +26,8 @@ export default function App() {
 
       <Metrics
         snapshot={snapshot}
+        rolling={rolling}
+        config={config}
         wallElapsed={wallElapsed}
         speed={speed}
         playing={playing}

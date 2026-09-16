@@ -5,6 +5,7 @@ import {
   parseConfigQuery,
   QUERY_CONFIG_KEYS,
   serializeConfigQuery,
+  shareableHref,
   shareableLocation,
 } from './configQuery.ts'
 
@@ -115,5 +116,18 @@ describe('serializeConfigQuery', () => {
     expect(loc.endsWith('#hero')).toBe(true)
     expect(loc).toContain('N=8')
     expect(loc).toContain('timeoutJitter=1')
+  })
+
+  it('builds an absolute href that still omits play and speed', () => {
+    const href = shareableHref(
+      'https://kleinron.github.io',
+      '/compaction-simulator/',
+      '',
+      { ...DEFAULT_CONFIG, T: 80 },
+    )
+    expect(href.startsWith('https://kleinron.github.io/compaction-simulator/?')).toBe(true)
+    expect(href).toContain('T=80')
+    expect(href).not.toContain('play=')
+    expect(href).not.toContain('speed=')
   })
 })

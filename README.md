@@ -18,6 +18,11 @@ raw traffic per database write.
 Live C is counted from the run (`raw_views` and `db_upserts`), not from the
 closed-form estimate.
 
+A rolling **C_W** sparkline sits beside hero C: `C_W(t) = Δraw / Δupserts`
+over the last **W** sim-seconds, with **W = clamp(15 × speed, 30, 600)** so
+faster playback looks further back. The amber line is the mean of C_W samples
+in that window. Labelled **last W s sim**. Lifetime C is unchanged.
+
 **Avg freshness** is the mean of `t_db − t_ingest` (sim-seconds) over views
 already upserted. Views still in open batches are pending and excluded; the
 sim does not flush them just to compute the mean. With stage 2 on, `t_db` is
@@ -94,7 +99,8 @@ npm run preview
 ## Shareable URL
 
 Knobs and toggles live in the query string so a copied link restores the same
-run. Play is session-only and is not written. **Speed** is remembered in
+run. **Share** copies that URL (or uses `navigator.share` when the browser
+offers it). Play is session-only and is not written. **Speed** is remembered in
 `localStorage` under `compaction-simulator:speed` (clamped to 1 / 10 / 25 /
 100 / 400) and is never placed in the URL. Unknown keys are ignored; `jitter`
 is accepted as an alias of `timeoutJitter`. Example:
@@ -110,6 +116,6 @@ if it is not already.
 
 ## Layout
 
-- `src/sim/` — pure domain: hash shard, S/M flush race, optional stage-2 mid-agg, upserts, C, discrete-event engine. No React / window.
+- `src/sim/` — pure domain: hash shard, S/M flush race, optional stage-2 mid-agg, upserts, C, rolling C_W, discrete-event engine. No React / window.
 - `src/url/` — parse / serialize the shareable query string (no DOM).
-- `src/ui/` — slider+textbox knobs, stage-2 toggle, global timeout-jitter toggle, freshness chip, query-string wiring, localStorage speed, and the LTR pipeline visualization.
+- `src/ui/` — slider+textbox knobs, stage-2 toggle, global timeout-jitter toggle, freshness chip, C_W sparkline, Share button, query-string wiring, localStorage speed, and the LTR pipeline visualization.
