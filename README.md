@@ -28,7 +28,7 @@ it is never the shard size.
 1. Ingest: page name → `{ page, timestamp }` (ISO-8601 UTC).
 2. `N` queues `page_views_raw_<i>` with `i = abs(hash(page)) mod N`.
 3. Each consumer merges into hour-floored counts.
-4. Flush payload looks like `{ "2026-08-20T18:00:00Z": { "a": 10, "c": 21 } }`.
+4. Flush payload looks like `{ "2026-08-20T18:00:00Z": { "pg0": 10, "pg2": 21 } }` (pages are named `pgK` for `0 <= K < T`).
 5. **One blob per flush** is published to `page_views_agg` (a SPOF).
 6. The DB writer (also a SPOF) additive-upserts each `(hour, page)` leaf.
 

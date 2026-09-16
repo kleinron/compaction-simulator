@@ -22,13 +22,18 @@ describe('hash sharding', () => {
     expect(rawQueueName(3)).toBe('page_views_raw_3')
   })
 
+  it('names catalog pages pgK', () => {
+    expect(pageName(0)).toBe('pg0')
+    expect(pageName(99)).toBe('pg99')
+  })
+
   it('names mid-agg queues page_views_mid_<i>', () => {
     expect(midQueueName(0)).toBe('page_views_mid_0')
     expect(midQueueName(3)).toBe('page_views_mid_3')
   })
 
   it('keeps a page on one shard as N stays fixed', () => {
-    const page = 'p42'
+    const page = 'pg42'
     const a = shardIndex(page, 4)
     for (let i = 0; i < 8; i++) {
       expect(shardIndex(page, 4)).toBe(a)
