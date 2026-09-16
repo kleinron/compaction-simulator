@@ -9,6 +9,7 @@ const quiet = {
   M: 1_000,
   S2: 1_000,
   M2: 1_000,
+  timeoutJitter: false,
 }
 
 describe('avg freshness', () => {

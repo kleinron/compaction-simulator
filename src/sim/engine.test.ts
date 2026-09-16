@@ -11,6 +11,7 @@ const quiet = {
   S: 1_000,
   M: 1_000,
   stage2: false,
+  timeoutJitter: false,
 }
 
 describe('discrete-event engine', () => {
@@ -70,7 +71,7 @@ describe('discrete-event engine', () => {
 
   it('keeps live C = raw_views / db_upserts and preserves view totals', () => {
     const eng = new SimulationEngine(
-      { ...DEFAULT_CONFIG, T: 40, N: 2, M: 8, S: 100, V_day: 86_400 },
+      { ...DEFAULT_CONFIG, T: 40, N: 2, M: 8, S: 100, V_day: 86_400, stage2: false, timeoutJitter: false },
       { seed: 6 },
     )
     eng.runUntil(80)
