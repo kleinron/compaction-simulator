@@ -40,7 +40,7 @@ export function Pipeline({ snapshot }: Props) {
 
         <div className="pipe-arrow" aria-hidden="true" />
 
-        <div className="shard-col">
+        <div className="shard-col" tabIndex={0} aria-label="Raw shard queues">
           {shards.map((shard) => (
             <ShardCard key={shard.queueName} shard={shard} />
           ))}

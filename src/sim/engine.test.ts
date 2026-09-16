@@ -100,4 +100,25 @@ describe('discrete-event engine', () => {
     const analytic = expectedCompactionC(T, M)
     expect(snap.stats.C).toBeCloseTo(analytic, 1)
   })
+
+  it('clamps T, N, and V_day to the documented maxima', () => {
+    const eng = new SimulationEngine(
+      { T: 50_000, N: 250, M: 10, S: 10, V_day: 500_000_000 },
+      { seed: 8 },
+    )
+    expect(eng.config.T).toBe(10_000)
+    expect(eng.config.N).toBe(100)
+    expect(eng.config.V_day).toBe(100_000_000)
+    expect(eng.snapshot().shards).toHaveLength(100)
+  })
+
+  it('keeps sim time honest when the per-step event budget is spent', () => {
+    const eng = new SimulationEngine(
+      { ...quiet, V_day: 86_400, N: 1, M: 1_000, S: 1e9 },
+      { seed: 9 },
+    )
+    eng.runUntil(100, 10)
+    expect(eng.time).toBeLessThan(40)
+    expect(eng.snapshot().stats.rawViews).toBeLessThanOrEqual(10)
+  })
 })

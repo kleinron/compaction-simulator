@@ -1,6 +1,6 @@
 export { arrivalRateLambda, expectedCompactionC, expectedUniqueKeys, shardSizeP, uniqueAfterThrows } from './analytics.ts'
 export { clonePayload, countDistinctKeys, countsToPayload, hourPageKey, mergeView, payloadRawViews } from './batch.ts'
-export { DEFAULT_CONFIG, SECONDS_PER_DAY } from './defaults.ts'
+export { CONFIG_LIMITS, DEFAULT_CONFIG, SECONDS_PER_DAY, UI_EVENTS_PER_FRAME } from './defaults.ts'
 export { SimulationEngine, normalizeConfig } from './engine.ts'
 export type { ShardSnapshot, SimSnapshot } from './engine.ts'
 export { earliestFlush, flushDue } from './flush.ts'

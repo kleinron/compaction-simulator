@@ -1,6 +1,6 @@
 import { arrivalRateLambda, expectedCompactionC, expectedUniqueKeys, shardSizeP } from './analytics.ts'
 import { countsToPayload, hourPageKey } from './batch.ts'
-import { DEFAULT_CONFIG } from './defaults.ts'
+import { CONFIG_LIMITS, DEFAULT_CONFIG } from './defaults.ts'
 import { flushDue } from './flush.ts'
 import { pageName, rawQueueName, shardIndex } from './hash.ts'
 import { exponential, mulberry32, pickPageIndex } from './rng.ts'
@@ -196,22 +196,26 @@ export class SimulationEngine {
     this.handlePageView(page, this.simTime)
   }
 
-  advance(simDt: number): void {
+  advance(simDt: number, maxEvents = MAX_EVENTS_PER_ADVANCE): void {
     if (simDt <= 0) return
-    this.runUntil(this.simTime + simDt)
+    this.runUntil(this.simTime + simDt, maxEvents)
   }
 
-  runUntil(targetTime: number): void {
+  runUntil(targetTime: number, maxEvents = MAX_EVENTS_PER_ADVANCE): void {
     let processed = 0
-    while (processed < MAX_EVENTS_PER_ADVANCE) {
+    let capped = false
+    while (processed < maxEvents) {
       const next = this.events.peek()
       if (!next || next.time > targetTime + 1e-9) break
       this.events.pop()
       this.simTime = next.time
       this.dispatch(next)
       processed += 1
+      if (processed >= maxEvents) capped = true
     }
-    this.simTime = Math.max(this.simTime, targetTime)
+    // Stay on the last processed event when the budget is spent so the
+    // sim clock does not run ahead of work at high λ.
+    if (!capped) this.simTime = Math.max(this.simTime, targetTime)
   }
 
   snapshot(): SimSnapshot {
@@ -375,10 +379,15 @@ export class SimulationEngine {
 
 export function normalizeConfig(input: SimConfig): SimConfig {
   return {
-    T: Math.max(1, Math.round(input.T)),
-    N: Math.max(1, Math.round(input.N)),
+    T: clampInt(input.T, CONFIG_LIMITS.T.min, CONFIG_LIMITS.T.max),
+    N: clampInt(input.N, CONFIG_LIMITS.N.min, CONFIG_LIMITS.N.max),
     M: Math.max(1, Math.round(input.M)),
-    S: Math.max(0.05, input.S),
-    V_day: Math.max(0, input.V_day),
+    // Tests use a huge S to isolate M; only enforce the floor here.
+    S: Math.max(CONFIG_LIMITS.S.min, input.S),
+    V_day: clampInt(input.V_day, CONFIG_LIMITS.V_day.min, CONFIG_LIMITS.V_day.max),
   }
+}
+
+function clampInt(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value)))
 }
