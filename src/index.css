@@ -146,7 +146,7 @@ a {
 .c-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: flex-end;
   gap: 16px;
 }
 
@@ -169,6 +169,73 @@ a {
 .c-formula small {
   color: var(--muted);
   font-family: var(--mono);
+}
+
+.rolling {
+  margin-left: auto;
+  min-width: 168px;
+}
+
+.rolling .eyebrow {
+  margin-bottom: 2px;
+}
+
+.rolling-svg {
+  display: block;
+  background: var(--bg-node);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.rolling-spark {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.rolling-avg {
+  stroke: var(--amber);
+  stroke-width: 1.75;
+  stroke-dasharray: 4 3;
+}
+
+.rolling-caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+
+.rolling-avg-label {
+  font-family: var(--mono);
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.share-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.share-toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--heading);
+  background: #1c2532;
+  border: 1px solid #2c6b6a;
+  border-radius: 6px;
+  padding: 3px 8px;
+  pointer-events: none;
 }
 
 .freshness-chip {
@@ -559,5 +626,9 @@ input[type='range']::-webkit-slider-thumb {
 
   .transport {
     justify-content: flex-start;
+  }
+
+  .rolling {
+    margin-left: 0;
   }
 }

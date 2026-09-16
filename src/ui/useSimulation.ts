@@ -1,9 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { UI_EVENTS_PER_FRAME, SimulationEngine, type SimConfig, type SimSnapshot } from '../sim/index.ts'
+import {
+  EMPTY_ROLLING,
+  RollingTracker,
+  SimulationEngine,
+  UI_EVENTS_PER_FRAME,
+  windowSeconds,
+  type RollingView,
+  type SimConfig,
+  type SimSnapshot,
+} from '../sim/index.ts'
 import { browserLocalStorage, readStoredSpeed, writeStoredSpeed } from './sessionStore.ts'
 
 export function useSimulation(config: SimConfig) {
   const engineRef = useRef<SimulationEngine | null>(null)
+  const trackerRef = useRef(new RollingTracker())
   const [snapshot, setSnapshot] = useState<SimSnapshot>(() =>
     new SimulationEngine(config, { seed: 1 }).snapshot(),
   )
@@ -11,15 +21,31 @@ export function useSimulation(config: SimConfig) {
   const [speed, setSpeed] = useState(() => readStoredSpeed(browserLocalStorage()))
   const [wallElapsed, setWallElapsed] = useState(0)
   const [runSeed, setRunSeed] = useState(1)
+  const [rolling, setRolling] = useState<RollingView>(EMPTY_ROLLING)
+
+  const speedRef = useRef(speed)
+  speedRef.current = speed
+
+  const record = useCallback((engine: SimulationEngine, nextSpeed: number) => {
+    const snap = engine.snapshot()
+    trackerRef.current.push({
+      simTime: snap.simTime,
+      rawViews: snap.stats.rawViews,
+      dbUpserts: snap.stats.dbUpserts,
+    })
+    setSnapshot(snap)
+    setRolling(trackerRef.current.view(windowSeconds(nextSpeed), snap.simTime))
+  }, [])
 
   const rebuild = useCallback(
     (nextSeed: number) => {
       const engine = new SimulationEngine(config, { seed: nextSeed })
       engineRef.current = engine
-      setSnapshot(engine.snapshot())
+      trackerRef.current.clear()
       setWallElapsed(0)
+      record(engine, speedRef.current)
     },
-    [config],
+    [config, record],
   )
 
   useEffect(() => {
@@ -28,6 +54,12 @@ export function useSimulation(config: SimConfig) {
 
   useEffect(() => {
     writeStoredSpeed(browserLocalStorage(), speed)
+  }, [speed])
+
+  useEffect(() => {
+    const engine = engineRef.current
+    if (!engine) return
+    setRolling(trackerRef.current.view(windowSeconds(speed), engine.time))
   }, [speed])
 
   useEffect(() => {
@@ -40,13 +72,13 @@ export function useSimulation(config: SimConfig) {
       if (playing && engine) {
         engine.advance(dt * speed, UI_EVENTS_PER_FRAME)
         setWallElapsed((w) => w + dt)
-        setSnapshot(engine.snapshot())
+        record(engine, speed)
       }
       raf = requestAnimationFrame(loop)
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [playing, speed])
+  }, [playing, speed, record])
 
   const reset = useCallback(() => {
     setRunSeed((s) => s + 1)
@@ -60,5 +92,6 @@ export function useSimulation(config: SimConfig) {
     setSpeed,
     wallElapsed,
     reset,
+    rolling,
   }
 }

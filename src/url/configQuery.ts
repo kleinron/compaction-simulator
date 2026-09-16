@@ -105,3 +105,13 @@ export function serializeConfigQuery(config: SimConfig): string {
 export function shareableLocation(pathname: string, hash: string, config: SimConfig): string {
   return `${pathname}?${serializeConfigQuery(config)}${hash}`
 }
+
+/** Absolute shareable URL for clipboard / navigator.share. Play and speed stay out. */
+export function shareableHref(
+  origin: string,
+  pathname: string,
+  hash: string,
+  config: SimConfig,
+): string {
+  return `${origin}${shareableLocation(pathname, hash, config)}`
+}
