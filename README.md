@@ -99,7 +99,7 @@ npm run preview
 ## Shareable URL
 
 Knobs and toggles live in the query string so a copied link restores the same
-run. **Share** copies that URL (or uses `navigator.share` when the browser
+run. **Share** (masthead, not playback) copies that URL (or uses `navigator.share` when the browser
 offers it). Play is session-only and is not written. **Speed** is remembered in
 `localStorage` under `compaction-simulator:speed` (clamped to 1 / 10 / 25 /
 100 / 400) and is never placed in the URL. Unknown keys are ignored; `jitter`
@@ -118,4 +118,4 @@ if it is not already.
 
 - `src/sim/` — pure domain: hash shard, S/M flush race, optional stage-2 mid-agg, upserts, C, rolling C_W, discrete-event engine. No React / window.
 - `src/url/` — parse / serialize the shareable query string (no DOM).
-- `src/ui/` — slider+textbox knobs, stage-2 toggle, global timeout-jitter toggle, freshness chip, C_W sparkline, Share button, query-string wiring, localStorage speed, and the LTR pipeline visualization.
+- `src/ui/` — slider+textbox knobs, stage-2 toggle, global timeout-jitter toggle, freshness chip, C_W sparkline, masthead Share (ghost) button, query-string wiring, localStorage speed, and the LTR pipeline visualization.

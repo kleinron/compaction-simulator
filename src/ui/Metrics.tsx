@@ -1,12 +1,10 @@
-import type { FlushReason, RollingView, SimConfig, SimSnapshot } from '../sim/index.ts'
+import type { FlushReason, RollingView, SimSnapshot } from '../sim/index.ts'
 import { ALLOWED_SPEEDS } from './sessionStore.ts'
 import { RollingChart } from './RollingChart.tsx'
-import { ShareButton } from './ShareButton.tsx'
 
 type Props = {
   snapshot: SimSnapshot
   rolling: RollingView
-  config: SimConfig
   wallElapsed: number
   speed: number
   playing: boolean
@@ -18,7 +16,6 @@ type Props = {
 export function Metrics({
   snapshot,
   rolling,
-  config,
   wallElapsed,
   speed,
   playing,
@@ -113,7 +110,6 @@ export function Metrics({
           <button type="button" className="btn" onClick={onReset}>
             Reset
           </button>
-          <ShareButton config={config} />
           <div className="speed" role="group" aria-label="Sim speed">
             {ALLOWED_SPEEDS.map((s) => (
               <button

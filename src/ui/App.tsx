@@ -1,6 +1,7 @@
 import { Knobs } from './Knobs.tsx'
 import { Metrics } from './Metrics.tsx'
 import { Pipeline } from './Pipeline.tsx'
+import { ShareButton } from './ShareButton.tsx'
 import { useShareableConfig } from './useShareableConfig.ts'
 import { useSimulation } from './useSimulation.ts'
 
@@ -12,9 +13,12 @@ export default function App() {
   return (
     <div className="app">
       <header className="mast">
-        <div>
-          <p className="eyebrow">Page-view analytics</p>
-          <h1>Compaction simulator</h1>
+        <div className="mast-top">
+          <div>
+            <p className="eyebrow">Page-view analytics</p>
+            <h1>Compaction simulator</h1>
+          </div>
+          <ShareButton config={config} />
         </div>
         <p className="lede">
           Discrete-event model of ingest → hashed raw shards → optional same-shard
@@ -27,7 +31,6 @@ export default function App() {
       <Metrics
         snapshot={snapshot}
         rolling={rolling}
-        config={config}
         wallElapsed={wallElapsed}
         speed={speed}
         playing={playing}
