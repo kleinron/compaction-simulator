@@ -3,7 +3,7 @@ import type { SimConfig } from '../sim/index.ts'
 import { arrivalRateLambda, CONFIG_LIMITS, shardSizeP } from '../sim/index.ts'
 import { clampKnob, formatKnobNumber } from './knobValue.ts'
 
-type NumericKnobKey = Exclude<keyof SimConfig, 'stage2'>
+type NumericKnobKey = Exclude<keyof SimConfig, 'stage2' | 'timeoutJitter'>
 
 type Knob = {
   key: NumericKnobKey
@@ -119,7 +119,22 @@ export function Knobs({ value, onChange }: Props) {
             onCommit={(next) => onChange({ ...value, [knob.key]: next })}
           />
         ))}
-        <label className="stage2-toggle">
+        <label className="knob-toggle">
+          <input
+            type="checkbox"
+            checked={value.timeoutJitter}
+            onChange={(e) => onChange({ ...value, timeoutJitter: e.target.checked })}
+          />
+          <span>
+            <strong>Jitter timeouts ±10%</strong>
+            <span className="knob-hint">
+              One global switch for every timeout (stage-1 S and stage-2 S₂).
+              Off: exact S / S₂. On: each new batch samples deadline = configured
+              timeout × U(0.9, 1.1).
+            </span>
+          </span>
+        </label>
+        <label className="knob-toggle">
           <input
             type="checkbox"
             checked={value.stage2}

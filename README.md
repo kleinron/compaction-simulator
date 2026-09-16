@@ -18,6 +18,11 @@ raw traffic per database write.
 Live C is counted from the run (`raw_views` and `db_upserts`), not from the
 closed-form estimate.
 
+**Avg freshness** is the mean of `t_db − t_ingest` (sim-seconds) over views
+already upserted. Views still in open batches are pending and excluded; the
+sim does not flush them just to compute the mean. With stage 2 on, `t_db` is
+the mid-agg DB publish, so deeper buffering raises freshness.
+
 When **only M fires** and all traffic sits in a **single hour**, occupancy
 gives `E[U] = P(1-(1-1/P)^M)` and `C ≈ M/E[U]`, where **P = T/N** is the
 shard size (pages per raw queue). **S** is the timeout knob in sim-seconds —
@@ -42,6 +47,13 @@ A batch flushes on the **earliest** of:
 If S and M fall on the same sim instant, **M wins**. Each numeric knob is a
 slider and a text box bound to the same value (clamped to that knob's
 min / max / step).
+
+**Timeout jitter** is one global toggle covering **all** timeouts: stage-1
+**S** and, when stage 2 is on, **S₂**. There are no per-stage switches. Off:
+the deadline is exactly the configured S / S₂. On: each newly opened batch
+(raw or mid) independently samples
+`deadline = configured timeout × U(0.9, 1.1)` for that stage. Flush is still
+the earliest of that sampled timeout vs M / M₂.
 
 ## Optional stage 2 (extra compaction)
 
@@ -89,4 +101,4 @@ if it is not already.
 ## Layout
 
 - `src/sim/` — pure domain: hash shard, S/M flush race, optional stage-2 mid-agg, upserts, C, discrete-event engine. No React.
-- `src/ui/` — slider+textbox knobs, stage-2 toggle, and the LTR pipeline visualization.
+- `src/ui/` — slider+textbox knobs, stage-2 toggle, global timeout-jitter toggle, freshness chip, and the LTR pipeline visualization.

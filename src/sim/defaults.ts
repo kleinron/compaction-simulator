@@ -10,6 +10,7 @@ export const DEFAULT_CONFIG: SimConfig = {
   stage2: false,
   S2: 25,
   M2: 3,
+  timeoutJitter: false,
 }
 
 export const SECONDS_PER_DAY = 86_400

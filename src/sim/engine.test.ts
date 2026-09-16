@@ -109,6 +109,7 @@ describe('discrete-event engine', () => {
     expect(eng.config.T).toBe(10_000)
     expect(eng.config.N).toBe(100)
     expect(eng.config.V_day).toBe(100_000_000)
+    expect(eng.config.timeoutJitter).toBe(false)
     expect(eng.snapshot().shards).toHaveLength(100)
   })
 

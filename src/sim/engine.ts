@@ -3,6 +3,7 @@ import { countsToPayload, countsTotal, hourPageKey, mergePayloadIntoCounts } fro
 import { CONFIG_LIMITS, DEFAULT_CONFIG } from './defaults.ts'
 import { flushDue } from './flush.ts'
 import { midQueueName, pageName, rawQueueName, shardIndex } from './hash.ts'
+import { jitteredTimeout } from './jitter.ts'
 import { exponential, mulberry32, pickPageIndex } from './rng.ts'
 import { floorToHourIso, simTimeToIso } from './time.ts'
 import type { AggBlob, AggPayload, DbLeaf, FlushReason, SimConfig } from './types.ts'
@@ -22,8 +23,11 @@ export type SimEvent = {
 type BatchState = {
   generation: number
   openTime: number | null
+  /** Sampled (or exact) timeout length in sim-seconds for this open batch. */
+  timeoutS: number
   messages: number
   counts: Map<string, number>
+  ingestTimes: number[]
   mReachedAt: number | null
   lastWinner: FlushReason | null
   lastFlushSimTime: number | null
@@ -70,6 +74,8 @@ export type SimSnapshot = {
     expectedU: number
     expectedC_M_only: number
     messageRatio: number
+    avgFreshness: number
+    committedViews: number
   }
 }
 
@@ -148,8 +154,10 @@ function emptyBatch(): BatchState {
   return {
     generation: 0,
     openTime: null,
+    timeoutS: 0,
     messages: 0,
     counts: new Map(),
+    ingestTimes: [],
     mReachedAt: null,
     lastWinner: null,
     lastFlushSimTime: null,
@@ -178,6 +186,8 @@ export class SimulationEngine {
   private readonly wins: Record<FlushReason, number> = { S: 0, M: 0 }
   private readonly midWins: Record<FlushReason, number> = { S: 0, M: 0 }
   private blobId = 0
+  private freshnessSum = 0
+  private freshnessCount = 0
 
   constructor(config: SimConfig = DEFAULT_CONFIG, opts?: { seed?: number }) {
     this.config = normalizeConfig(config)
@@ -270,6 +280,9 @@ export class SimulationEngine {
         expectedC_M_only: expectedCompactionC(P, config.M),
         messageRatio:
           this.aggPublishes === 0 ? 0 : this.rawViews / this.aggPublishes,
+        avgFreshness:
+          this.freshnessCount === 0 ? 0 : this.freshnessSum / this.freshnessCount,
+        committedViews: this.freshnessCount,
       },
     }
   }
@@ -284,13 +297,14 @@ export class SimulationEngine {
   ): ShardSnapshot {
     const open = shard.openTime !== null
     const elapsed = open ? Math.max(0, this.simTime - shard.openTime!) : 0
+    const timeoutS = open && shard.timeoutS > 0 ? shard.timeoutS : S
     return {
       index,
       queueName,
       messages: shard.messages,
       distinctKeys: shard.counts.size,
       openTime: shard.openTime,
-      meterS: open && S > 0 ? Math.min(1, elapsed / S) : 0,
+      meterS: open && timeoutS > 0 ? Math.min(1, elapsed / timeoutS) : 0,
       meterM: M > 0 ? Math.min(1, shard.messages / M) : 0,
       lastWinner: shard.lastWinner,
       flushPulse:
@@ -323,7 +337,7 @@ export class SimulationEngine {
       const due = flushDue({
         openTime: mid.openTime,
         simTime: ev.time,
-        S: this.config.S2,
+        S: mid.timeoutS,
         mReachedAt: mid.mReachedAt,
       })
       if (due) this.flushMid(ev.shard, due.reason, due.time)
@@ -335,7 +349,7 @@ export class SimulationEngine {
     const due = flushDue({
       openTime: shard.openTime,
       simTime: ev.time,
-      S: this.config.S,
+      S: shard.timeoutS,
       mReachedAt: shard.mReachedAt,
     })
     if (due) this.flushRaw(ev.shard, due.reason, due.time)
@@ -348,8 +362,9 @@ export class SimulationEngine {
     const shard = this.shards[shardId]
     if (shard.openTime === null) {
       shard.openTime = time
+      shard.timeoutS = jitteredTimeout(this.config.S, this.config.timeoutJitter, this.rng)
       this.events.push({
-        time: time + this.config.S,
+        time: time + shard.timeoutS,
         seq: this.seq++,
         kind: 'timeout',
         shard: shardId,
@@ -358,6 +373,7 @@ export class SimulationEngine {
     }
     const key = hourPageKey(hour, page)
     shard.counts.set(key, (shard.counts.get(key) ?? 0) + 1)
+    shard.ingestTimes.push(time)
     shard.messages += 1
     this.rawViews += 1
     this.recentIngest.push({ page, shard: shardId, timestamp })
@@ -370,7 +386,7 @@ export class SimulationEngine {
     const due = flushDue({
       openTime: shard.openTime,
       simTime: time,
-      S: this.config.S,
+      S: shard.timeoutS,
       mReachedAt: shard.mReachedAt,
     })
     if (due) this.flushRaw(shardId, due.reason, due.time)
@@ -382,6 +398,7 @@ export class SimulationEngine {
     const payload = countsToPayload(shard.counts)
     const distinctKeys = shard.counts.size
     const messages = shard.messages
+    const ingestTimes = shard.ingestTimes
     this.wins[winner] += 1
     shard.lastWinner = winner
     shard.lastFlushSimTime = time
@@ -389,10 +406,12 @@ export class SimulationEngine {
     shard.openTime = null
     shard.messages = 0
     shard.counts = new Map()
+    shard.ingestTimes = []
     shard.mReachedAt = null
+    shard.timeoutS = 0
 
     if (this.config.stage2) {
-      this.ingestMidBlob(shardId, payload, time)
+      this.ingestMidBlob(shardId, payload, ingestTimes, time)
       return
     }
     this.publishAgg({
@@ -404,15 +423,22 @@ export class SimulationEngine {
       stage: 1,
       sourceBlobs: 1,
       publishedAt: time,
+      ingestTimes,
     })
   }
 
-  private ingestMidBlob(shardId: number, payload: AggPayload, time: number): void {
+  private ingestMidBlob(
+    shardId: number,
+    payload: AggPayload,
+    ingestTimes: number[],
+    time: number,
+  ): void {
     const mid = this.midShards[shardId]
     if (mid.openTime === null) {
       mid.openTime = time
+      mid.timeoutS = jitteredTimeout(this.config.S2, this.config.timeoutJitter, this.rng)
       this.events.push({
-        time: time + this.config.S2,
+        time: time + mid.timeoutS,
         seq: this.seq++,
         kind: 'timeout2',
         shard: shardId,
@@ -420,6 +446,7 @@ export class SimulationEngine {
       })
     }
     mergePayloadIntoCounts(mid.counts, payload)
+    mid.ingestTimes.push(...ingestTimes)
     mid.messages += 1
     if (mid.messages >= this.config.M2 && mid.mReachedAt === null) {
       mid.mReachedAt = time
@@ -427,7 +454,7 @@ export class SimulationEngine {
     const due = flushDue({
       openTime: mid.openTime,
       simTime: time,
-      S: this.config.S2,
+      S: mid.timeoutS,
       mReachedAt: mid.mReachedAt,
     })
     if (due) this.flushMid(shardId, due.reason, due.time)
@@ -440,6 +467,7 @@ export class SimulationEngine {
     const distinctKeys = mid.counts.size
     const sourceBlobs = mid.messages
     const messages = countsTotal(mid.counts)
+    const ingestTimes = mid.ingestTimes
     this.midWins[winner] += 1
     mid.lastWinner = winner
     mid.lastFlushSimTime = time
@@ -447,7 +475,9 @@ export class SimulationEngine {
     mid.openTime = null
     mid.messages = 0
     mid.counts = new Map()
+    mid.ingestTimes = []
     mid.mReachedAt = null
+    mid.timeoutS = 0
     this.publishAgg({
       shard: shardId,
       winner,
@@ -457,6 +487,7 @@ export class SimulationEngine {
       stage: 2,
       sourceBlobs,
       publishedAt: time,
+      ingestTimes,
     })
   }
 
@@ -469,6 +500,7 @@ export class SimulationEngine {
     stage: 1 | 2
     sourceBlobs: number
     publishedAt: number
+    ingestTimes: readonly number[]
   }): void {
     const blob: AggBlob = {
       id: ++this.blobId,
@@ -496,6 +528,10 @@ export class SimulationEngine {
     this.lastFlushStage = args.stage
     this.lastFlushMessages = args.messages
     this.lastFlushKeys = args.distinctKeys
+    for (const ingestedAt of args.ingestTimes) {
+      this.freshnessSum += args.publishedAt - ingestedAt
+      this.freshnessCount += 1
+    }
   }
 }
 
@@ -509,6 +545,7 @@ export function normalizeConfig(input: SimConfig): SimConfig {
     stage2: Boolean(input.stage2),
     S2: Math.max(CONFIG_LIMITS.S2.min, input.S2 ?? DEFAULT_CONFIG.S2),
     M2: Math.max(1, Math.round(input.M2 ?? DEFAULT_CONFIG.M2)),
+    timeoutJitter: Boolean(input.timeoutJitter),
   }
 }
 
