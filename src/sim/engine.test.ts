@@ -10,6 +10,8 @@ const quiet = {
   V_day: 0,
   S: 1_000,
   M: 1_000,
+  stage2: false,
+  timeoutJitter: false,
 }
 
 describe('discrete-event engine', () => {
@@ -69,7 +71,7 @@ describe('discrete-event engine', () => {
 
   it('keeps live C = raw_views / db_upserts and preserves view totals', () => {
     const eng = new SimulationEngine(
-      { ...DEFAULT_CONFIG, T: 40, N: 2, M: 8, S: 100, V_day: 86_400 },
+      { ...DEFAULT_CONFIG, T: 40, N: 2, M: 8, S: 100, V_day: 86_400, stage2: false, timeoutJitter: false },
       { seed: 6 },
     )
     eng.runUntil(80)
@@ -85,7 +87,7 @@ describe('discrete-event engine', () => {
     const T = 20
     const M = 5
     const eng = new SimulationEngine(
-      { ...DEFAULT_CONFIG, T, N: 1, M, S: 1e9, V_day: 86_400 },
+      { ...DEFAULT_CONFIG, T, N: 1, M, S: 1e9, V_day: 86_400, stage2: false },
       { seed: 7 },
     )
     let guard = 0
@@ -101,16 +103,23 @@ describe('discrete-event engine', () => {
     expect(snap.stats.C).toBeCloseTo(analytic, 1)
   })
 
-  it('clamps T, N, and V_day to the documented maxima', () => {
+  it('clamps T, N, M, and V_day to the documented maxima', () => {
     const eng = new SimulationEngine(
-      { ...DEFAULT_CONFIG, T: 50_000, N: 250, M: 10, S: 10, V_day: 50_000_000_000 },
+      { ...DEFAULT_CONFIG, T: 50_000, N: 250, M: 50_000, S: 10, V_day: 50_000_000_000 },
       { seed: 8 },
     )
     expect(eng.config.T).toBe(10_000)
     expect(eng.config.N).toBe(100)
+    expect(eng.config.M).toBe(5_000)
     expect(eng.config.V_day).toBe(10_000_000_000)
-    expect(eng.config.timeoutJitter).toBe(false)
+    expect(eng.config.timeoutJitter).toBe(true)
     expect(eng.snapshot().shards).toHaveLength(100)
+  })
+
+  it('keeps default M=400 under the new M max of 5000', () => {
+    expect(DEFAULT_CONFIG.M).toBe(400)
+    expect(CONFIG_LIMITS.M.max).toBe(5_000)
+    expect(DEFAULT_CONFIG.M).toBeLessThan(CONFIG_LIMITS.M.max)
   })
 
   it('keeps sim time honest when the per-step event budget is spent', () => {
