@@ -61,9 +61,9 @@ export function Metrics({
           hint="raw views : agg publishes"
         />
         <Stat
-          label="Wins S / K / M"
-          value={`${stats.wins.S} / ${stats.wins.K} / ${stats.wins.M}`}
-          hint="earliest-of-three"
+          label="Wins S / M"
+          value={`${stats.wins.S} / ${stats.wins.M}`}
+          hint="earliest of timeout or messages; ties → M"
         />
       </dl>
 
@@ -127,7 +127,6 @@ function Stat({
 
 function winnerHint(winner: FlushReason | null): string {
   if (winner === 'S') return 'timeout (sim-seconds)'
-  if (winner === 'K') return 'distinct (hour, page) keys'
   if (winner === 'M') return 'raw messages received'
   return 'no flush yet'
 }

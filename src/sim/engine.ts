@@ -25,7 +25,6 @@ type ShardState = {
   messages: number
   counts: Map<string, number>
   mReachedAt: number | null
-  kReachedAt: number | null
   lastWinner: FlushReason | null
   lastFlushSimTime: number | null
 }
@@ -37,7 +36,6 @@ export type ShardSnapshot = {
   distinctKeys: number
   openTime: number | null
   meterS: number
-  meterK: number
   meterM: number
   lastWinner: FlushReason | null
   flushPulse: boolean
@@ -148,7 +146,6 @@ function emptyShard(): ShardState {
     messages: 0,
     counts: new Map(),
     mReachedAt: null,
-    kReachedAt: null,
     lastWinner: null,
     lastFlushSimTime: null,
   }
@@ -171,7 +168,7 @@ export class SimulationEngine {
   private lastWinner: FlushReason | null = null
   private lastFlushMessages = 0
   private lastFlushKeys = 0
-  private readonly wins: Record<FlushReason, number> = { S: 0, K: 0, M: 0 }
+  private readonly wins: Record<FlushReason, number> = { S: 0, M: 0 }
   private blobId = 0
 
   constructor(config: SimConfig = DEFAULT_CONFIG, opts?: { seed?: number }) {
@@ -254,7 +251,7 @@ export class SimulationEngine {
   }
 
   private snapshotShard(shard: ShardState, index: number): ShardSnapshot {
-    const { S, K, M } = this.config
+    const { S, M } = this.config
     const open = shard.openTime !== null
     const elapsed = open ? Math.max(0, this.simTime - shard.openTime!) : 0
     return {
@@ -264,7 +261,6 @@ export class SimulationEngine {
       distinctKeys: shard.counts.size,
       openTime: shard.openTime,
       meterS: open && S > 0 ? Math.min(1, elapsed / S) : 0,
-      meterK: K > 0 ? Math.min(1, shard.counts.size / K) : 0,
       meterM: M > 0 ? Math.min(1, shard.messages / M) : 0,
       lastWinner: shard.lastWinner,
       flushPulse:
@@ -297,7 +293,6 @@ export class SimulationEngine {
       simTime: ev.time,
       S: this.config.S,
       mReachedAt: shard.mReachedAt,
-      kReachedAt: shard.kReachedAt,
     })
     if (due) this.flushShard(ev.shard, due.reason, due.time)
   }
@@ -327,16 +322,12 @@ export class SimulationEngine {
     if (shard.messages >= this.config.M && shard.mReachedAt === null) {
       shard.mReachedAt = time
     }
-    if (shard.counts.size >= this.config.K && shard.kReachedAt === null) {
-      shard.kReachedAt = time
-    }
 
     const due = flushDue({
       openTime: shard.openTime,
       simTime: time,
       S: this.config.S,
       mReachedAt: shard.mReachedAt,
-      kReachedAt: shard.kReachedAt,
     })
     if (due) this.flushShard(shardId, due.reason, due.time)
   }
@@ -379,7 +370,6 @@ export class SimulationEngine {
     shard.messages = 0
     shard.counts = new Map()
     shard.mReachedAt = null
-    shard.kReachedAt = null
   }
 }
 
@@ -389,7 +379,6 @@ export function normalizeConfig(input: SimConfig): SimConfig {
     N: Math.max(1, Math.round(input.N)),
     M: Math.max(1, Math.round(input.M)),
     S: Math.max(0.05, input.S),
-    K: Math.max(1, Math.round(input.K)),
     V_day: Math.max(0, input.V_day),
   }
 }

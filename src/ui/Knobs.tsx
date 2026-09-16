@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import type { SimConfig } from '../sim/index.ts'
 import { arrivalRateLambda, shardSizeP } from '../sim/index.ts'
+import { clampKnob, formatKnobNumber } from './knobValue.ts'
 
 type Knob = {
   key: keyof SimConfig
@@ -8,7 +10,7 @@ type Knob = {
   min: number
   max: number
   step: number
-  format: (v: number) => string
+  pretty?: (v: number) => string
 }
 
 const KNOBS: Knob[] = [
@@ -19,7 +21,6 @@ const KNOBS: Knob[] = [
     min: 10,
     max: 2000,
     step: 10,
-    format: (v) => String(v),
   },
   {
     key: 'N',
@@ -28,7 +29,6 @@ const KNOBS: Knob[] = [
     min: 1,
     max: 12,
     step: 1,
-    format: (v) => String(v),
   },
   {
     key: 'M',
@@ -37,7 +37,6 @@ const KNOBS: Knob[] = [
     min: 1,
     max: 400,
     step: 1,
-    format: (v) => String(v),
   },
   {
     key: 'S',
@@ -46,16 +45,6 @@ const KNOBS: Knob[] = [
     min: 0.5,
     max: 120,
     step: 0.5,
-    format: (v) => v.toFixed(1),
-  },
-  {
-    key: 'K',
-    label: 'K · keys',
-    hint: 'Flush at K distinct (hour, page) keys in the merge.',
-    min: 1,
-    max: 400,
-    step: 1,
-    format: (v) => String(v),
   },
   {
     key: 'V_day',
@@ -64,7 +53,7 @@ const KNOBS: Knob[] = [
     min: 10_000,
     max: 8_000_000,
     step: 10_000,
-    format: (v) =>
+    pretty: (v) =>
       v >= 1_000_000 ? `${(v / 1_000_000).toFixed(2)}M` : `${Math.round(v / 1000)}k`,
   },
 ]
@@ -89,27 +78,92 @@ export function Knobs({ value, onChange }: Props) {
       </header>
       <div className="knob-grid">
         {KNOBS.map((knob) => (
-          <label key={knob.key} className="knob">
-            <span className="knob-top">
-              <span>{knob.label}</span>
-              <output>{knob.format(value[knob.key])}</output>
-            </span>
-            <input
-              type="range"
-              min={knob.min}
-              max={knob.max}
-              step={knob.step}
-              value={value[knob.key]}
-              aria-label={knob.label}
-              onChange={(e) =>
-                onChange({ ...value, [knob.key]: Number(e.target.value) })
-              }
-            />
-            <span className="knob-hint">{knob.hint}</span>
-          </label>
+          <KnobControl
+            key={knob.key}
+            knob={knob}
+            value={value[knob.key]}
+            onCommit={(next) => onChange({ ...value, [knob.key]: next })}
+          />
         ))}
       </div>
     </section>
+  )
+}
+
+function KnobControl({
+  knob,
+  value,
+  onCommit,
+}: {
+  knob: Knob
+  value: number
+  onCommit: (next: number) => void
+}) {
+  const [draft, setDraft] = useState(formatKnobNumber(value, knob.step))
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) setDraft(formatKnobNumber(value, knob.step))
+  }, [value, focused, knob.step])
+
+  const commit = (raw: number) => {
+    onCommit(clampKnob(raw, knob))
+  }
+
+  const commitDraft = () => {
+    const parsed = Number(draft)
+    if (!Number.isFinite(parsed)) {
+      setDraft(formatKnobNumber(value, knob.step))
+      return
+    }
+    const next = clampKnob(parsed, knob)
+    onCommit(next)
+    setDraft(formatKnobNumber(next, knob.step))
+  }
+
+  const labelId = `knob-${knob.key}`
+  const textId = `knob-${knob.key}-text`
+
+  return (
+    <div className="knob">
+      <div className="knob-top">
+        <label htmlFor={labelId}>{knob.label}</label>
+        <span className="knob-inputs">
+          {knob.pretty ? <span className="knob-pretty">{knob.pretty(value)}</span> : null}
+          <input
+            id={textId}
+            className="knob-text"
+            type="text"
+            inputMode={knob.step < 1 ? 'decimal' : 'numeric'}
+            value={focused ? draft : formatKnobNumber(value, knob.step)}
+            aria-label={`${knob.label} value`}
+            onFocus={() => {
+              setFocused(true)
+              setDraft(formatKnobNumber(value, knob.step))
+            }}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => {
+              setFocused(false)
+              commitDraft()
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+            }}
+          />
+        </span>
+      </div>
+      <input
+        id={labelId}
+        type="range"
+        min={knob.min}
+        max={knob.max}
+        step={knob.step}
+        value={value}
+        aria-label={knob.label}
+        onChange={(e) => commit(Number(e.target.value))}
+      />
+      <span className="knob-hint">{knob.hint}</span>
+    </div>
   )
 }
 
