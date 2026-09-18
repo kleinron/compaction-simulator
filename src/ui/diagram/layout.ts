@@ -18,7 +18,7 @@ export const DIAGRAM = {
   stackLayers: 3,
   stackOffset: 7,
   spoFMinH: 148,
-  captionH: 24,
+  captionH: 32,
   nodeW: 154,
 } as const
 
@@ -213,8 +213,8 @@ export function layout(config: LayoutConfig, options: LayoutOptions = {}): Diagr
 
   const width = dbX + DIAGRAM.nodeW + DIAGRAM.padX
   const height = DIAGRAM.padY + contentH + DIAGRAM.captionH + DIAGRAM.padY
-  const captionX = rawX + DIAGRAM.nodeW / 2
-  const captionY = DIAGRAM.padY + contentH + 16
+  const captionX = width / 2
+  const captionY = DIAGRAM.padY + contentH + 22
 
   return {
     width,
