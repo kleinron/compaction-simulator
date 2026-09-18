@@ -53,6 +53,14 @@ If S and M fall on the same sim instant, **M wins**. Each numeric knob is a
 slider and a text box bound to the same value (clamped to that knob's
 min / max / step).
 
+The live pipeline is an SVG architecture diagram (not Mermaid, not canvas).
+Layout is a React-free `layout(config)` helper. **Stage 2** adds a mid-agg
+column. **N ≤ 6** draws each shard; **N > 6** draws a stack glyph (2–3 cards +
+`N=…` badge), not six fake slots and an ellipsis. Mid-agg uses the same rule.
+`page_views_agg` → DB always carries SPOF badges. Jitter, S/M/S₂/M₂, V_day,
+and T are meters/labels on that skeleton; sticky hashing is the caption
+“page → one shard”.
+
 **Timeout jitter** is one global toggle covering **all** timeouts: stage-1
 **S** and, when stage 2 is on, **S₂**. There are no per-stage switches. Off:
 the deadline is exactly the configured S / S₂. On: each newly opened batch
@@ -119,3 +127,4 @@ if it is not already.
 - `src/sim/` — pure domain: hash shard, S/M flush race, optional stage-2 mid-agg, upserts, C, rolling C_W, discrete-event engine. No React / window.
 - `src/url/` — parse / serialize the shareable query string (no DOM).
 - `src/ui/` — slider+textbox knobs, stage-2 toggle, global timeout-jitter toggle, freshness chip, C_W sparkline, masthead Share (ghost) button, query-string wiring, localStorage speed, and the LTR pipeline visualization.
+- `src/ui/diagram/` — React-free `layout(config) → DiagramModel` plus SVG architecture (DOM+SVG, not Mermaid/canvas). Topology variants are stage 2 on/off and N ≤ 6 vs a stack glyph; jitter / M / S / V_day / T are labels on that skeleton. SPOF path `page_views_agg` → DB is always drawn.
