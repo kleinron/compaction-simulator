@@ -29,7 +29,7 @@ describe('parseConfigQuery', () => {
 
   it('serializes empty-URL defaults to the canonical query string', () => {
     expect(serializeConfigQuery(DEFAULT_CONFIG)).toBe(
-      'T=10000&N=25&M=400&Q=2000&S=20&V_day=100000000&stage2=1&S2=90&M2=10&timeoutJitter=1',
+      'T=10000&N=25&M=400&Q=5000&S=20&V_day=100000000&stage2=1&S2=90&M2=10&timeoutJitter=1',
     )
   })
 
@@ -124,7 +124,7 @@ describe('serializeConfigQuery', () => {
     expect(loc.startsWith('/compaction-simulator/?')).toBe(true)
     expect(loc.endsWith('#hero')).toBe(true)
     expect(loc).toContain('N=8')
-    expect(loc).toContain('Q=2000')
+    expect(loc).toContain('Q=5000')
     expect(loc).toContain('timeoutJitter=1')
   })
 
@@ -137,7 +137,7 @@ describe('serializeConfigQuery', () => {
     )
     expect(href.startsWith('https://kleinron.github.io/compaction-simulator/?')).toBe(true)
     expect(href).toContain('T=80')
-    expect(href).toContain('Q=2000')
+    expect(href).toContain('Q=5000')
     expect(href).not.toContain('play=')
     expect(href).not.toContain('speed=')
   })

@@ -54,12 +54,13 @@ batch). There is no **Q₂** — mid-agg queues stay unbounded. Overflow **drops
 the incoming page-view and increments a global `dropped` counter (no
 block/retry). Drops never enter `rawViews` or **C**. If **Q < M**, the
 count-flush threshold is **min(M, Q)** so depth never exceeds Q. Default
-**Q = 2000** (5× default M) so M usually wins first and the cap is a safety
-net.
+**Q = 5000** (above default M) so M usually wins first and the cap is a safety
+net. Min **Q = 1** for tight-cap demos; max **Q = 50_000**. The Q slider
+steps by **100**; the text box still accepts any integer in that range.
 
 If S and M fall on the same sim instant, **M wins**. Each numeric knob is a
 slider and a text box bound to the same value (clamped to that knob's
-min / max / step).
+min / max / step). Q is the exception: slider step 100, text box step 1.
 
 The live pipeline is an SVG architecture diagram (not Mermaid, not canvas).
 Layout is a React-free `layout(config)` helper. **Stage 2** adds a mid-agg
@@ -122,7 +123,7 @@ offers it). Play is session-only and is not written. **Speed** is remembered in
 100 / 400) and is never placed in the URL. Unknown keys are ignored; `jitter`
 is accepted as an alias of `timeoutJitter`. Example:
 
-https://kleinron.github.io/compaction-simulator/?T=10000&N=25&M=400&Q=2000&S=20&V_day=100000000&stage2=1&S2=90&M2=10&timeoutJitter=1
+https://kleinron.github.io/compaction-simulator/?T=10000&N=25&M=400&Q=5000&S=20&V_day=100000000&stage2=1&S2=90&M2=10&timeoutJitter=1
 
 ## GitHub Pages
 

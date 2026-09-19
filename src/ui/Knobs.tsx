@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { SimConfig } from '../sim/index.ts'
 import { arrivalRateLambda, CONFIG_LIMITS, shardSizeP } from '../sim/index.ts'
-import { clampKnob, formatKnobNumber, formatVDayPretty } from './knobValue.ts'
+import {
+  clampKnob,
+  clampSliderKnob,
+  formatKnobNumber,
+  formatQPretty,
+  formatVDayPretty,
+  Q_SLIDER_STEP,
+} from './knobValue.ts'
 
 type NumericKnobKey = Exclude<keyof SimConfig, 'stage2' | 'timeoutJitter'>
 
@@ -12,6 +19,8 @@ type Knob = {
   min: number
   max: number
   step: number
+  /** Range input increment. Text box still uses `step`. */
+  sliderStep?: number
   pretty?: (v: number) => string
   wide?: boolean
 }
@@ -65,10 +74,12 @@ const STAGE1_KNOBS: Knob[] = [
   {
     key: 'Q',
     label: 'Q · raw depth',
-    hint: 'Hard cap per raw shard (open batch). Overflow drops. Count-flush is min(M, Q). No Q₂ on mid.',
-    min: 1,
+    hint: 'Hard cap per raw shard (open batch). Overflow drops. Count-flush is min(M, Q). No Q₂ on mid. Slider steps by 100; type any integer for tight caps.',
+    min: CONFIG_LIMITS.Q.min,
     max: CONFIG_LIMITS.Q.max,
     step: 1,
+    sliderStep: Q_SLIDER_STEP,
+    pretty: formatQPretty,
   },
 ]
 
@@ -182,13 +193,19 @@ function KnobControl({
 }) {
   const [draft, setDraft] = useState(formatKnobNumber(value, knob.step))
   const [focused, setFocused] = useState(false)
+  const sliderStep = knob.sliderStep ?? knob.step
+  const sliderMin = knob.sliderStep != null ? 0 : knob.min
 
   useEffect(() => {
     if (!focused) setDraft(formatKnobNumber(value, knob.step))
   }, [value, focused, knob.step])
 
-  const commit = (raw: number) => {
-    onCommit(clampKnob(raw, knob))
+  const commitSlider = (raw: number) => {
+    onCommit(
+      knob.sliderStep != null
+        ? clampSliderKnob(raw, { min: knob.min, max: knob.max, sliderStep: knob.sliderStep })
+        : clampKnob(raw, knob),
+    )
   }
 
   const commitDraft = () => {
@@ -237,13 +254,13 @@ function KnobControl({
       <input
         id={labelId}
         type="range"
-        min={knob.min}
+        min={sliderMin}
         max={knob.max}
-        step={knob.step}
-        value={value}
+        step={sliderStep}
+        value={Math.min(knob.max, Math.max(sliderMin, value))}
         aria-label={knob.label}
         disabled={disabled}
-        onChange={(e) => commit(Number(e.target.value))}
+        onChange={(e) => commitSlider(Number(e.target.value))}
       />
       <span className="knob-hint">{knob.hint}</span>
     </div>
