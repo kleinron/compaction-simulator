@@ -103,15 +103,14 @@ describe('discrete-event engine', () => {
     expect(snap.stats.C).toBeCloseTo(analytic, 1)
   })
 
-  it('clamps T, N, M, Q, and V_day to the documented maxima', () => {
+  it('clamps T, N, M, and V_day to the documented maxima', () => {
     const eng = new SimulationEngine(
-      { ...DEFAULT_CONFIG, T: 50_000, N: 250, M: 50_000, Q: 999_999, S: 10, V_day: 50_000_000_000 },
+      { ...DEFAULT_CONFIG, T: 50_000, N: 250, M: 50_000, S: 10, V_day: 50_000_000_000 },
       { seed: 8 },
     )
     expect(eng.config.T).toBe(10_000)
     expect(eng.config.N).toBe(100)
     expect(eng.config.M).toBe(5_000)
-    expect(eng.config.Q).toBe(50_000)
     expect(eng.config.V_day).toBe(10_000_000_000)
     expect(eng.config.timeoutJitter).toBe(true)
     expect(eng.snapshot().shards).toHaveLength(100)
@@ -121,13 +120,6 @@ describe('discrete-event engine', () => {
     expect(DEFAULT_CONFIG.M).toBe(400)
     expect(CONFIG_LIMITS.M.max).toBe(5_000)
     expect(DEFAULT_CONFIG.M).toBeLessThan(CONFIG_LIMITS.M.max)
-  })
-
-  it('defaults Q to 5×M so the cap sits above the usual count-flush', () => {
-    expect(DEFAULT_CONFIG.Q).toBe(2_000)
-    expect(DEFAULT_CONFIG.Q).toBe(5 * DEFAULT_CONFIG.M)
-    expect(DEFAULT_CONFIG.Q).toBeLessThan(CONFIG_LIMITS.Q.max)
-    expect(DEFAULT_CONFIG.Q).toBeGreaterThan(CONFIG_LIMITS.Q.min)
   })
 
   it('keeps sim time honest when the per-step event budget is spent', () => {

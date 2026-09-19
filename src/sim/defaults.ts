@@ -5,8 +5,6 @@ export const DEFAULT_CONFIG: SimConfig = {
   T: 10_000,
   N: 25,
   M: 400,
-  /** 5× default M so M usually wins first; Q is a safety cap, not the flush size. */
-  Q: 2_000,
   S: 20,
   V_day: 100_000_000,
   stage2: true,
@@ -22,7 +20,6 @@ export const CONFIG_LIMITS = {
   T: { min: 1, max: 10_000 },
   N: { min: 1, max: 100 },
   M: { min: 1, max: 5_000 },
-  Q: { min: 1, max: 50_000 },
   S: { min: 0.05, max: 120 },
   V_day: { min: 0, max: 10_000_000_000 },
   S2: { min: 0.05, max: 120 },
