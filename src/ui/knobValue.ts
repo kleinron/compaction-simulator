@@ -1,3 +1,6 @@
+/** Q range-slider increment. Text box still accepts any integer in [Q.min, Q.max]. */
+export const Q_SLIDER_STEP = 100
+
 /** Snap a typed/slider value onto the same min/max/step as the paired control. */
 export function clampKnob(
   raw: number,
@@ -7,6 +10,19 @@ export function clampKnob(
   const stepped = spec.min + Math.round((raw - spec.min) / spec.step) * spec.step
   const clamped = Math.min(spec.max, Math.max(spec.min, stepped))
   return Number(clamped.toFixed(decimalPlaces(spec.step)))
+}
+
+/**
+ * Snap a range-slider drag onto `sliderStep`, then clamp into the knob's
+ * real [min, max]. Slider origin is 0 so default/max Q (5000 / 50000) sit
+ * on 100-wide ticks even though typed min is 1.
+ */
+export function clampSliderKnob(
+  raw: number,
+  spec: { min: number; max: number; sliderStep: number },
+): number {
+  const snapped = clampKnob(raw, { min: 0, max: spec.max, step: spec.sliderStep })
+  return Math.min(spec.max, Math.max(spec.min, snapped))
 }
 
 export function formatKnobNumber(value: number, step: number): string {

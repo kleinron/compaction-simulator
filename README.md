@@ -55,11 +55,12 @@ the incoming page-view and increments a global `dropped` counter (no
 block/retry). Drops never enter `rawViews` or **C**. If **Q < M**, the
 count-flush threshold is **min(M, Q)** so depth never exceeds Q. Default
 **Q = 5000** (above default M) so M usually wins first and the cap is a safety
-net. Min **Q = 1** for tight-cap demos; max **Q = 50_000**.
+net. Min **Q = 1** for tight-cap demos; max **Q = 50_000**. The Q slider
+steps by **100**; the text box still accepts any integer in that range.
 
 If S and M fall on the same sim instant, **M wins**. Each numeric knob is a
 slider and a text box bound to the same value (clamped to that knob's
-min / max / step).
+min / max / step). Q is the exception: slider step 100, text box step 1.
 
 The live pipeline is an SVG architecture diagram (not Mermaid, not canvas).
 Layout is a React-free `layout(config)` helper. **Stage 2** adds a mid-agg

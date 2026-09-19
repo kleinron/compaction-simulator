@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { clampKnob, formatKnobNumber, formatQPretty, formatVDayPretty } from './knobValue.ts'
+import {
+  clampKnob,
+  clampSliderKnob,
+  formatKnobNumber,
+  formatQPretty,
+  formatVDayPretty,
+  Q_SLIDER_STEP,
+} from './knobValue.ts'
 
 describe('clampKnob', () => {
   const N = { min: 1, max: 100, step: 1 }
@@ -58,5 +65,25 @@ describe('clampKnob', () => {
     expect(formatQPretty(50_000)).toBe('50k')
     expect(formatKnobNumber(5_000, 1)).toBe('5000')
     expect(formatKnobNumber(50_000, 1)).toBe('50000')
+  })
+
+  it('keeps the Q slider step at 100+ so 5000 and 50000 land on ticks', () => {
+    expect(Q_SLIDER_STEP).toBeGreaterThanOrEqual(100)
+    const Qslide = { min: 1, max: 50_000, sliderStep: Q_SLIDER_STEP }
+    expect(clampSliderKnob(5_000, Qslide)).toBe(5_000)
+    expect(clampSliderKnob(50_000, Qslide)).toBe(50_000)
+    expect(clampSliderKnob(5_049, Qslide)).toBe(5_000)
+    expect(clampSliderKnob(5_050, Qslide)).toBe(5_100)
+    expect(clampSliderKnob(0, Qslide)).toBe(1)
+    expect(clampSliderKnob(80, Qslide)).toBe(100)
+  })
+
+  it('lets the Q text box keep any integer in [1, 50000]', () => {
+    const Qtext = { min: 1, max: 50_000, step: 1 }
+    expect(clampKnob(1, Qtext)).toBe(1)
+    expect(clampKnob(7, Qtext)).toBe(7)
+    expect(clampKnob(4_999, Qtext)).toBe(4_999)
+    expect(clampKnob(5_000, Qtext)).toBe(5_000)
+    expect(clampKnob(50_000, Qtext)).toBe(50_000)
   })
 })
