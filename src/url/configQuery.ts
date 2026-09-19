@@ -10,6 +10,7 @@ export const QUERY_CONFIG_KEYS = [
   'T',
   'N',
   'M',
+  'Q',
   'S',
   'V_day',
   'stage2',
@@ -18,7 +19,7 @@ export const QUERY_CONFIG_KEYS = [
   'timeoutJitter',
 ] as const
 
-const NUMERIC_KEYS = ['T', 'N', 'M', 'S', 'V_day', 'S2', 'M2'] as const
+const NUMERIC_KEYS = ['T', 'N', 'M', 'Q', 'S', 'V_day', 'S2', 'M2'] as const
 
 /** Debounce for history.replaceState so slider drags do not spam the URL. */
 export const QUERY_REPLACE_DEBOUNCE_MS = 200

@@ -1,7 +1,7 @@
 import { arrivalRateLambda, expectedCompactionC, expectedUniqueKeys, shardSizeP } from './analytics.ts'
 import { countsToPayload, countsTotal, hourPageKey, mergePayloadIntoCounts } from './batch.ts'
 import { CONFIG_LIMITS, DEFAULT_CONFIG } from './defaults.ts'
-import { flushDue } from './flush.ts'
+import { flushDue, rawCountFlushThreshold, rawQueueFull } from './flush.ts'
 import { midQueueName, pageName, rawQueueName, shardIndex } from './hash.ts'
 import { jitteredTimeout } from './jitter.ts'
 import { exponential, mulberry32, pickPageIndex } from './rng.ts'
@@ -41,6 +41,8 @@ export type ShardSnapshot = {
   openTime: number | null
   meterS: number
   meterM: number
+  /** Raw depth / Q. Always 0 on mid shards (no Q₂). */
+  meterQ: number
   lastWinner: FlushReason | null
   flushPulse: boolean
   unit: 'msgs' | 'blobs'
@@ -62,6 +64,7 @@ export type SimSnapshot = {
   pendingViews: number
   stats: {
     rawViews: number
+    dropped: number
     dbUpserts: number
     aggPublishes: number
     C: number
@@ -177,6 +180,7 @@ export class SimulationEngine {
   private readonly recentIngest: SimSnapshot['recentIngest'] = []
   private readonly recentUpserts: DbLeaf[] = []
   private rawViews = 0
+  private dropped = 0
   private dbUpserts = 0
   private aggPublishes = 0
   private lastWinner: FlushReason | null = null
@@ -240,7 +244,7 @@ export class SimulationEngine {
     const P = shardSizeP(config.T, config.N)
     const lambda = arrivalRateLambda(config.V_day)
     const shards = this.shards.map((shard, index) =>
-      this.snapshotBatch(shard, index, rawQueueName(index), config.S, config.M, 'msgs'),
+      this.snapshotBatch(shard, index, rawQueueName(index), config.S, config.M, 'msgs', config.Q),
     )
     const midShards = config.stage2
       ? this.midShards.map((shard, index) =>
@@ -267,6 +271,7 @@ export class SimulationEngine {
       pendingViews: pendingStage1 + pendingMid,
       stats: {
         rawViews: this.rawViews,
+        dropped: this.dropped,
         dbUpserts: this.dbUpserts,
         aggPublishes: this.aggPublishes,
         C: compactionC(this.rawViews, this.dbUpserts),
@@ -276,8 +281,8 @@ export class SimulationEngine {
         lastFlushKeys: this.lastFlushKeys,
         wins: { ...this.wins },
         midWins: { ...this.midWins },
-        expectedU: expectedUniqueKeys(P, config.M),
-        expectedC_M_only: expectedCompactionC(P, config.M),
+        expectedU: expectedUniqueKeys(P, rawCountFlushThreshold(config.M, config.Q)),
+        expectedC_M_only: expectedCompactionC(P, rawCountFlushThreshold(config.M, config.Q)),
         messageRatio:
           this.aggPublishes === 0 ? 0 : this.rawViews / this.aggPublishes,
         avgFreshness:
@@ -294,6 +299,7 @@ export class SimulationEngine {
     S: number,
     M: number,
     unit: ShardSnapshot['unit'],
+    Q?: number,
   ): ShardSnapshot {
     const open = shard.openTime !== null
     const elapsed = open ? Math.max(0, this.simTime - shard.openTime!) : 0
@@ -306,6 +312,7 @@ export class SimulationEngine {
       openTime: shard.openTime,
       meterS: open && timeoutS > 0 ? Math.min(1, elapsed / timeoutS) : 0,
       meterM: M > 0 ? Math.min(1, shard.messages / M) : 0,
+      meterQ: Q && Q > 0 ? Math.min(1, shard.messages / Q) : 0,
       lastWinner: shard.lastWinner,
       flushPulse:
         shard.lastFlushSimTime !== null &&
@@ -356,10 +363,14 @@ export class SimulationEngine {
   }
 
   private handlePageView(page: string, time: number): void {
-    const timestamp = simTimeToIso(time)
-    const hour = floorToHourIso(timestamp)
     const shardId = shardIndex(page, this.config.N)
     const shard = this.shards[shardId]
+    if (rawQueueFull(shard.messages, this.config.Q)) {
+      this.dropped += 1
+      return
+    }
+    const timestamp = simTimeToIso(time)
+    const hour = floorToHourIso(timestamp)
     if (shard.openTime === null) {
       shard.openTime = time
       shard.timeoutS = jitteredTimeout(this.config.S, this.config.timeoutJitter, this.rng)
@@ -379,7 +390,8 @@ export class SimulationEngine {
     this.recentIngest.push({ page, shard: shardId, timestamp })
     if (this.recentIngest.length > INGEST_KEEP) this.recentIngest.shift()
 
-    if (shard.messages >= this.config.M && shard.mReachedAt === null) {
+    const countFlush = rawCountFlushThreshold(this.config.M, this.config.Q)
+    if (shard.messages >= countFlush && shard.mReachedAt === null) {
       shard.mReachedAt = time
     }
 
@@ -540,6 +552,7 @@ export function normalizeConfig(input: SimConfig): SimConfig {
     T: clampInt(input.T, CONFIG_LIMITS.T.min, CONFIG_LIMITS.T.max),
     N: clampInt(input.N, CONFIG_LIMITS.N.min, CONFIG_LIMITS.N.max),
     M: clampInt(input.M, CONFIG_LIMITS.M.min, CONFIG_LIMITS.M.max),
+    Q: clampInt(input.Q ?? DEFAULT_CONFIG.Q, CONFIG_LIMITS.Q.min, CONFIG_LIMITS.Q.max),
     S: Math.max(CONFIG_LIMITS.S.min, input.S),
     V_day: clampInt(input.V_day, CONFIG_LIMITS.V_day.min, CONFIG_LIMITS.V_day.max),
     stage2: Boolean(input.stage2),

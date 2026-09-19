@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { earliestFlush, flushDue } from './flush.ts'
+import { earliestFlush, flushDue, rawCountFlushThreshold, rawQueueFull } from './flush.ts'
+
+describe('raw queue cap helpers', () => {
+  it('uses min(M, Q) as the raw count-flush threshold', () => {
+    expect(rawCountFlushThreshold(400, 2_000)).toBe(400)
+    expect(rawCountFlushThreshold(400, 80)).toBe(80)
+    expect(rawCountFlushThreshold(10, 10)).toBe(10)
+  })
+
+  it('treats depth >= Q as full', () => {
+    expect(rawQueueFull(0, 3)).toBe(false)
+    expect(rawQueueFull(2, 3)).toBe(false)
+    expect(rawQueueFull(3, 3)).toBe(true)
+    expect(rawQueueFull(4, 3)).toBe(true)
+  })
+})
 
 describe('flush earliest-of-two (S, M)', () => {
   it('picks the smallest sim timestamp', () => {
