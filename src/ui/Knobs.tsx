@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { SimConfig } from '../sim/index.ts'
 import { arrivalRateLambda, CONFIG_LIMITS, shardSizeP } from '../sim/index.ts'
-import { clampKnob, formatKnobNumber, formatVDayPretty } from './knobValue.ts'
+import { clampKnob, formatKnobNumber, formatQPretty, formatVDayPretty } from './knobValue.ts'
 
 type NumericKnobKey = Exclude<keyof SimConfig, 'stage2' | 'timeoutJitter'>
 
@@ -66,9 +66,10 @@ const STAGE1_KNOBS: Knob[] = [
     key: 'Q',
     label: 'Q · raw depth',
     hint: 'Hard cap per raw shard (open batch). Overflow drops. Count-flush is min(M, Q). No Q₂ on mid.',
-    min: 1,
+    min: CONFIG_LIMITS.Q.min,
     max: CONFIG_LIMITS.Q.max,
     step: 1,
+    pretty: formatQPretty,
   },
 ]
 

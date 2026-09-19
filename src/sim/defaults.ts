@@ -5,8 +5,8 @@ export const DEFAULT_CONFIG: SimConfig = {
   T: 10_000,
   N: 25,
   M: 400,
-  /** 5× default M so M usually wins first; Q is a safety cap, not the flush size. */
-  Q: 2_000,
+  /** Above default M so M usually wins first; Q is a safety cap, not the flush size. */
+  Q: 5_000,
   S: 20,
   V_day: 100_000_000,
   stage2: true,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampKnob, formatKnobNumber, formatVDayPretty } from './knobValue.ts'
+import { clampKnob, formatKnobNumber, formatQPretty, formatVDayPretty } from './knobValue.ts'
 
 describe('clampKnob', () => {
   const N = { min: 1, max: 100, step: 1 }
@@ -18,7 +18,8 @@ describe('clampKnob', () => {
     expect(clampKnob(400, M)).toBe(400)
     expect(clampKnob(5_000, M)).toBe(5_000)
     expect(clampKnob(5_001, M)).toBe(5_000)
-    expect(clampKnob(2_000, Q)).toBe(2_000)
+    expect(clampKnob(5_000, Q)).toBe(5_000)
+    expect(clampKnob(50_000, Q)).toBe(50_000)
     expect(clampKnob(50_001, Q)).toBe(50_000)
     expect(clampKnob(0, Q)).toBe(1)
     expect(clampKnob(10_000, T)).toBe(10_000)
@@ -49,5 +50,13 @@ describe('clampKnob', () => {
     expect(formatVDayPretty(1_000_000)).toBe('1.00M')
     expect(formatVDayPretty(50_000)).toBe('50k')
     expect(formatKnobNumber(10_000_000_000, 10_000)).toBe('10000000000')
+  })
+
+  it('pretty-prints Q as k/M while the text box keeps the full integer', () => {
+    expect(formatQPretty(1)).toBe('1')
+    expect(formatQPretty(5_000)).toBe('5k')
+    expect(formatQPretty(50_000)).toBe('50k')
+    expect(formatKnobNumber(5_000, 1)).toBe('5000')
+    expect(formatKnobNumber(50_000, 1)).toBe('50000')
   })
 })

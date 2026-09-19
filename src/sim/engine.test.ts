@@ -123,9 +123,11 @@ describe('discrete-event engine', () => {
     expect(DEFAULT_CONFIG.M).toBeLessThan(CONFIG_LIMITS.M.max)
   })
 
-  it('defaults Q to 5×M so the cap sits above the usual count-flush', () => {
-    expect(DEFAULT_CONFIG.Q).toBe(2_000)
-    expect(DEFAULT_CONFIG.Q).toBe(5 * DEFAULT_CONFIG.M)
+  it('defaults Q to 5000 with min 1 and max 50000', () => {
+    expect(DEFAULT_CONFIG.Q).toBe(5_000)
+    expect(CONFIG_LIMITS.Q.min).toBe(1)
+    expect(CONFIG_LIMITS.Q.max).toBe(50_000)
+    expect(DEFAULT_CONFIG.Q).toBeGreaterThan(DEFAULT_CONFIG.M)
     expect(DEFAULT_CONFIG.Q).toBeLessThan(CONFIG_LIMITS.Q.max)
     expect(DEFAULT_CONFIG.Q).toBeGreaterThan(CONFIG_LIMITS.Q.min)
   })

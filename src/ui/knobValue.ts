@@ -20,6 +20,13 @@ export function formatVDayPretty(v: number): string {
   return `${Math.round(v / 1000)}k`
 }
 
+/** Compact readout for Q (and similar integer knobs). Full integer stays in the text box. */
+export function formatQPretty(v: number): string {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`
+  if (v >= 1_000) return `${Math.round(v / 1000)}k`
+  return String(Math.round(v))
+}
+
 function decimalPlaces(step: number): number {
   if (!Number.isFinite(step) || step >= 1) return 0
   const text = step.toString()

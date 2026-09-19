@@ -3,7 +3,7 @@ import { earliestFlush, flushDue, rawCountFlushThreshold, rawQueueFull } from '.
 
 describe('raw queue cap helpers', () => {
   it('uses min(M, Q) as the raw count-flush threshold', () => {
-    expect(rawCountFlushThreshold(400, 2_000)).toBe(400)
+    expect(rawCountFlushThreshold(400, 5_000)).toBe(400)
     expect(rawCountFlushThreshold(400, 80)).toBe(80)
     expect(rawCountFlushThreshold(10, 10)).toBe(10)
   })
