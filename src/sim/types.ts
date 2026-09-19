@@ -7,12 +7,6 @@ export type SimConfig = {
   N: number
   /** Flush when this many raw messages have been received. */
   M: number
-  /**
-   * Hard cap on depth per raw shard (open-batch / pending messages).
-   * Overflow drops the incoming view. Mid/stage-2 queues are unbounded (no Q₂).
-   * Count-flush uses min(M, Q) so depth never exceeds Q.
-   */
-  Q: number
   /** Flush timeout in sim-seconds since the batch opened. */
   S: number
   /** Ingest API calls per calendar day. λ = V_day / 86400. */

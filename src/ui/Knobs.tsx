@@ -62,14 +62,6 @@ const STAGE1_KNOBS: Knob[] = [
     max: CONFIG_LIMITS.M.max,
     step: 1,
   },
-  {
-    key: 'Q',
-    label: 'Q · raw depth',
-    hint: 'Hard cap per raw shard (open batch). Overflow drops. Count-flush is min(M, Q). No Q₂ on mid.',
-    min: 1,
-    max: CONFIG_LIMITS.Q.max,
-    step: 1,
-  },
 ]
 
 const STAGE2_KNOBS: Knob[] = [

@@ -29,7 +29,7 @@ describe('parseConfigQuery', () => {
 
   it('serializes empty-URL defaults to the canonical query string', () => {
     expect(serializeConfigQuery(DEFAULT_CONFIG)).toBe(
-      'T=10000&N=25&M=400&Q=2000&S=20&V_day=100000000&stage2=1&S2=90&M2=10&timeoutJitter=1',
+      'T=10000&N=25&M=400&S=20&V_day=100000000&stage2=1&S2=90&M2=10&timeoutJitter=1',
     )
   })
 
@@ -40,7 +40,7 @@ describe('parseConfigQuery', () => {
     expect(cfg.T).toBe(80)
     expect(cfg.N).toBe(2)
     expect(cfg.M).toBe(12)
-    expect(cfg.Q).toBe(80)
+    expect(cfg).not.toHaveProperty('Q')
     expect(cfg.S).toBe(8.5)
     expect(cfg.V_day).toBe(500_000)
     expect(cfg.stage2).toBe(true)
@@ -68,22 +68,20 @@ describe('parseConfigQuery', () => {
 
   it('clamps numeric keys through CONFIG_LIMITS', () => {
     const high = parseConfigQuery(
-      `?T=99999&N=250&M=99999&Q=999999&S=500&V_day=50000000000&S2=500&M2=999`,
+      `?T=99999&N=250&M=99999&S=500&V_day=50000000000&S2=500&M2=999`,
     )
     expect(high.T).toBe(CONFIG_LIMITS.T.max)
     expect(high.N).toBe(CONFIG_LIMITS.N.max)
     expect(high.M).toBe(CONFIG_LIMITS.M.max)
-    expect(high.Q).toBe(CONFIG_LIMITS.Q.max)
     expect(high.S).toBe(CONFIG_LIMITS.S.max)
     expect(high.V_day).toBe(CONFIG_LIMITS.V_day.max)
     expect(high.S2).toBe(CONFIG_LIMITS.S2.max)
     expect(high.M2).toBe(CONFIG_LIMITS.M2.max)
 
-    const low = parseConfigQuery('?T=0&N=0&M=0&Q=0&S=0&V_day=-1&S2=0&M2=1')
+    const low = parseConfigQuery('?T=0&N=0&M=0&S=0&V_day=-1&S2=0&M2=1')
     expect(low.T).toBe(CONFIG_LIMITS.T.min)
     expect(low.N).toBe(CONFIG_LIMITS.N.min)
     expect(low.M).toBe(CONFIG_LIMITS.M.min)
-    expect(low.Q).toBe(CONFIG_LIMITS.Q.min)
     expect(low.S).toBe(CONFIG_LIMITS.S.min)
     expect(low.V_day).toBe(CONFIG_LIMITS.V_day.min)
     expect(low.S2).toBe(CONFIG_LIMITS.S2.min)
@@ -110,7 +108,7 @@ describe('serializeConfigQuery', () => {
 
   it('round-trips through parse', () => {
     const original = parseConfigQuery(
-      '?T=80&N=2&M=12&Q=80&S=8.5&V_day=500000&stage2=1&S2=40&M2=5&timeoutJitter=1',
+      '?T=80&N=2&M=12&S=8.5&V_day=500000&stage2=1&S2=40&M2=5&timeoutJitter=1',
     )
     expect(parseConfigQuery(`?${serializeConfigQuery(original)}`)).toEqual(original)
   })
@@ -124,7 +122,7 @@ describe('serializeConfigQuery', () => {
     expect(loc.startsWith('/compaction-simulator/?')).toBe(true)
     expect(loc.endsWith('#hero')).toBe(true)
     expect(loc).toContain('N=8')
-    expect(loc).toContain('Q=2000')
+    expect(loc).not.toContain('Q=')
     expect(loc).toContain('timeoutJitter=1')
   })
 
@@ -137,7 +135,7 @@ describe('serializeConfigQuery', () => {
     )
     expect(href.startsWith('https://kleinron.github.io/compaction-simulator/?')).toBe(true)
     expect(href).toContain('T=80')
-    expect(href).toContain('Q=2000')
+    expect(href).not.toContain('Q=')
     expect(href).not.toContain('play=')
     expect(href).not.toContain('speed=')
   })

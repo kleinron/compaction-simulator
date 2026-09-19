@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_CONFIG } from '../../sim/defaults.ts'
-import { DIAGRAM, layout, MAX_COLLECTION, STICKY_CAPTION } from './layout.ts'
+import { layout, MAX_COLLECTION, STICKY_CAPTION } from './layout.ts'
 import type { DiagramNode } from './types.ts'
 
 const base = { N: DEFAULT_CONFIG.N, stage2: DEFAULT_CONFIG.stage2 }
@@ -16,12 +16,6 @@ function collection(nodes: DiagramNode[], id: 'raw' | 'mid') {
 describe('layout()', () => {
   it('uses MAX_COLLECTION = 6 by default', () => {
     expect(MAX_COLLECTION).toBe(6)
-  })
-
-  it('keeps node heights tall enough for a third raw Q meter under S/M', () => {
-    // padY 16 + meterH 7 + two 16px gaps above Q = 55px from the card bottom to S.
-    expect(DIAGRAM.nodeH).toBeGreaterThanOrEqual(116)
-    expect(DIAGRAM.stackH).toBeGreaterThanOrEqual(130)
   })
 
   it('stage2 off, N ≤ 6: N raw peers, no mid, no stack', () => {

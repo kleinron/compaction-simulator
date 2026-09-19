@@ -3,16 +3,6 @@ import type { FlushCandidate, FlushReason } from './types.ts'
 /** Tie-break when S and M share a sim timestamp: message count M, then timeout S. */
 const TIE_ORDER: Record<FlushReason, number> = { M: 0, S: 1 }
 
-/** Raw count-flush threshold: M unless Q is tighter, so depth never exceeds Q. */
-export function rawCountFlushThreshold(M: number, Q: number): number {
-  return Math.min(M, Q)
-}
-
-/** True when this raw shard is already at the Q cap (next view must drop). */
-export function rawQueueFull(depth: number, Q: number): boolean {
-  return depth >= Q
-}
-
 /** Earliest-wins among S / M candidates. */
 export function earliestFlush(
   candidates: readonly FlushCandidate[],

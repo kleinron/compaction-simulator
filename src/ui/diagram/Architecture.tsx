@@ -216,18 +216,15 @@ function NodeBody({ node, snapshot }: { node: DiagramNode; snapshot: SimSnapshot
   }
 
   const shards = node.collection === 'mid' ? snapshot.midShards : snapshot.shards
-  const raw = node.collection === 'raw'
   const sLabel = node.collection === 'mid' ? 'S₂' : 'S₁'
   const mLabel = node.collection === 'mid' ? 'M₂' : 'M₁'
   const bound = bindShards(node, shards)
   const title = node.kind === 'stack' ? node.label : node.label.replace('page_views_', '')
-  // Top copy starts at +16; keep at least that much air under the last meter.
+  // Top copy starts at +16; keep at least that much air under the M meter.
   const padY = 16
   const meterH = 7
   const meterGap = 16
-  const bottom = y + node.height - padY - meterH
-  const meterQ = raw ? bottom : null
-  const meterM = raw ? bottom - meterGap : bottom
+  const meterM = y + node.height - padY - meterH
   const meterS = meterM - meterGap
 
   return (
@@ -239,13 +236,10 @@ function NodeBody({ node, snapshot }: { node: DiagramNode; snapshot: SimSnapshot
         {clip(title, width - 56)}
       </text>
       <text className="diagram-meta" x={tx} y={y + 50}>
-        {clip(bound.summary, width - 24)}
+        {bound.summary}
       </text>
       <MeterBar x={tx} y={meterS} width={width - 20} label={sLabel} fill={bound.meterS} kind="S" />
       <MeterBar x={tx} y={meterM} width={width - 20} label={mLabel} fill={bound.meterM} kind="M" />
-      {meterQ !== null ? (
-        <MeterBar x={tx} y={meterQ} width={width - 20} label="Q" fill={bound.meterQ} kind="Q" />
-      ) : null}
     </>
   )
 }
@@ -253,30 +247,20 @@ function NodeBody({ node, snapshot }: { node: DiagramNode; snapshot: SimSnapshot
 function bindShards(node: DiagramNode, shards: ShardSnapshot[]) {
   if (node.kind === 'peer' && node.index !== undefined) {
     const shard = shards[node.index]
-    if (!shard) return { meterS: 0, meterM: 0, meterQ: 0, summary: '—' }
+    if (!shard) return { meterS: 0, meterM: 0, summary: '—' }
     const unit = shard.unit === 'blobs' ? 'blobs' : 'msgs'
     return {
       meterS: shard.meterS,
       meterM: shard.meterM,
-      meterQ: shard.meterQ,
       summary: `${shard.messages} ${unit} · ${shard.distinctKeys} keys`,
     }
   }
-  if (shards.length === 0) {
-    return { meterS: 0, meterM: 0, meterQ: 0, summary: `${node.count ?? 0} shards` }
-  }
+  if (shards.length === 0) return { meterS: 0, meterM: 0, summary: `${node.count ?? 0} shards` }
   const meterS = shards.reduce((s, sh) => s + sh.meterS, 0) / shards.length
   const meterM = shards.reduce((s, sh) => s + sh.meterM, 0) / shards.length
-  const meterQ = shards.reduce((s, sh) => s + sh.meterQ, 0) / shards.length
   const msgs = shards.reduce((s, sh) => s + sh.messages, 0)
-  const maxDepth = shards.reduce((s, sh) => Math.max(s, sh.messages), 0)
   const unit = shards[0]?.unit === 'blobs' ? 'blobs' : 'msgs'
-  const meanPct = Math.round(Math.min(1, Math.max(0, meterQ)) * 100)
-  const summary =
-    node.collection === 'raw'
-      ? `mean ${meanPct}% · max ${maxDepth}`
-      : `${msgs} ${unit} · mean meters`
-  return { meterS, meterM, meterQ, summary }
+  return { meterS, meterM, summary: `${msgs} ${unit} · mean meters` }
 }
 
 function nodePulse(node: DiagramNode, snapshot: SimSnapshot): boolean {
@@ -299,7 +283,7 @@ function MeterBar({
   width: number
   label: string
   fill: number
-  kind: 'S' | 'M' | 'Q'
+  kind: 'S' | 'M'
 }) {
   const trackX = x + 22
   const trackW = Math.max(20, width - 56)
