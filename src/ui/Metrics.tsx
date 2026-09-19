@@ -48,14 +48,20 @@ export function Metrics({
           Live C is counted from the run. The M-only single-hour check is E[U] ={' '}
           {stats.expectedU.toFixed(2)}, C ≈ {stats.expectedC_M_only.toFixed(2)}.
         </p>
-        <div className="freshness-chip" aria-label="Average freshness">
-          <span className="eyebrow">avg freshness</span>
-          <span className="fresh-value">
-            {stats.committedViews === 0 ? '—' : `${stats.avgFreshness.toFixed(2)}s`}
-          </span>
-          <span className="muted">
-            {snapshot.pendingViews.toLocaleString()} pending
-          </span>
+        <div className="hero-secondary">
+          <div className="freshness-chip" aria-label="Average freshness">
+            <span className="eyebrow">avg freshness</span>
+            <span className="fresh-value">
+              {stats.committedViews === 0 ? '—' : `${stats.avgFreshness.toFixed(2)}s`}
+            </span>
+            <span className="muted">
+              {snapshot.pendingViews.toLocaleString()} pending
+            </span>
+          </div>
+          <div className="dropped-chip" aria-label="Dropped raw views">
+            <span className="eyebrow">dropped</span>
+            <span className="dropped-value">{stats.dropped.toLocaleString()}</span>
+          </div>
         </div>
       </div>
 

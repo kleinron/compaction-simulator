@@ -12,7 +12,7 @@ export {
 export { CONFIG_LIMITS, DEFAULT_CONFIG, SECONDS_PER_DAY, UI_EVENTS_PER_FRAME } from './defaults.ts'
 export { SimulationEngine, normalizeConfig } from './engine.ts'
 export type { ShardSnapshot, SimSnapshot } from './engine.ts'
-export { earliestFlush, flushDue } from './flush.ts'
+export { earliestFlush, flushDue, rawCountFlushThreshold, rawQueueFull } from './flush.ts'
 export { hashPage, midQueueName, pageName, rawQueueName, shardIndex } from './hash.ts'
 export {
   EMPTY_ROLLING,
