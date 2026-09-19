@@ -220,10 +220,16 @@ function NodeBody({ node, snapshot }: { node: DiagramNode; snapshot: SimSnapshot
   const mLabel = node.collection === 'mid' ? 'M₂' : 'M₁'
   const bound = bindShards(node, shards)
   const title = node.kind === 'stack' ? node.label : node.label.replace('page_views_', '')
+  // Top copy starts at +16; keep at least that much air under the M meter.
+  const padY = 16
+  const meterH = 7
+  const meterGap = 16
+  const meterM = y + node.height - padY - meterH
+  const meterS = meterM - meterGap
 
   return (
     <>
-      <text className="diagram-kicker" x={tx} y={y + 16}>
+      <text className="diagram-kicker" x={tx} y={y + padY}>
         {node.collection === 'mid' ? 'mid-agg' : 'raw'}
       </text>
       <text className="diagram-title code" x={tx} y={y + 34}>
@@ -232,8 +238,8 @@ function NodeBody({ node, snapshot }: { node: DiagramNode; snapshot: SimSnapshot
       <text className="diagram-meta" x={tx} y={y + 50}>
         {bound.summary}
       </text>
-      <MeterBar x={tx} y={y + 60} width={width - 20} label={sLabel} fill={bound.meterS} kind="S" />
-      <MeterBar x={tx} y={y + 76} width={width - 20} label={mLabel} fill={bound.meterM} kind="M" />
+      <MeterBar x={tx} y={meterS} width={width - 20} label={sLabel} fill={bound.meterS} kind="S" />
+      <MeterBar x={tx} y={meterM} width={width - 20} label={mLabel} fill={bound.meterM} kind="M" />
     </>
   )
 }

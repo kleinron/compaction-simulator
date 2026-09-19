@@ -12,7 +12,7 @@ export const DIAGRAM = {
   colGap: 48,
   padX: 20,
   padY: 18,
-  nodeH: 84,
+  nodeH: 100,
   nodeGap: 10,
   stackH: 114,
   stackLayers: 3,
