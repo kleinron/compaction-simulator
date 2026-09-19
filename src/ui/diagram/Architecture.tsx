@@ -239,7 +239,7 @@ function NodeBody({ node, snapshot }: { node: DiagramNode; snapshot: SimSnapshot
         {clip(title, width - 56)}
       </text>
       <text className="diagram-meta" x={tx} y={y + 50}>
-        {bound.summary}
+        {clip(bound.summary, width - 24)}
       </text>
       <MeterBar x={tx} y={meterS} width={width - 20} label={sLabel} fill={bound.meterS} kind="S" />
       <MeterBar x={tx} y={meterM} width={width - 20} label={mLabel} fill={bound.meterM} kind="M" />
@@ -274,7 +274,7 @@ function bindShards(node: DiagramNode, shards: ShardSnapshot[]) {
   const meanPct = Math.round(Math.min(1, Math.max(0, meterQ)) * 100)
   const summary =
     node.collection === 'raw'
-      ? `${msgs} ${unit} · mean ${meanPct}% · max ${maxDepth}`
+      ? `mean ${meanPct}% · max ${maxDepth}`
       : `${msgs} ${unit} · mean meters`
   return { meterS, meterM, meterQ, summary }
 }
