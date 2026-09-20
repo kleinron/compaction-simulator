@@ -63,7 +63,7 @@ and T are meters/labels on that skeleton; sticky hashing is the caption
 
 ![Architecture with N=4 raw shards and no mid-aggregation layer](docs/architecture-n4-single-stage.png)
 
-*N=4, single-stage (no mid aggregation): ingest → 4 raw queues → `page_views_agg` → DB.*
+*N=4, single-stage (no secondary aggregation): ingest → 4 raw queues → `page_views_agg` → DB.*
 
 **Timeout jitter** is one global toggle covering **all** timeouts: stage-1
 **S** and, when stage 2 is on, **S₂**. There are no per-stage switches. Off:
